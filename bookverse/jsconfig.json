@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src", // Le dice a JS que la carpeta base para paths es 'src'
+    "paths": {
+      "@components/*": ["components/*"], // Mapea @components a src/components
+      "@pages/*": ["pages/*"]           // Mapea @pages a src/pages
+    }
+  },
+  "include": ["src/**/*"]
+}
