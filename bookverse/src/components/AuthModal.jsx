@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserPlus, LogIn, Mail, Lock, CheckCircle, XCircle } from 'lucide-react';
-// Importamos el cliente de Supabase (asegúrate de que la ruta al archivo sea correcta)
-import { supabase } from '../supabaseClient'; 
+
+const API_BASE_PATH = '/api';
 
 const AuthModal = ({ isOpen, onClose, mode, setMode, setAuthMessage, setAuthUser, authMessage }) => {
     const [email, setEmail] = useState('');
@@ -19,47 +19,37 @@ const AuthModal = ({ isOpen, onClose, mode, setMode, setAuthMessage, setAuthUser
         if (!isOpen) resetForm();
     }, [isOpen, resetForm]);
 
-    // Función modificada para conectar con Supabase directamente
     const handleAuthAction = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setAuthMessage(null);
 
+        const endpoint = mode === 'register' ? `${API_BASE_PATH}/auth/register` : `${API_BASE_PATH}/auth/login`;
+        const payload = mode === 'register' ? { name, email, password } : { email, password };
+
         try {
-            if (mode === 'register') {
-                // REGISTRO: Usamos el método signUp de Supabase
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        // Guardamos el nombre en la metadata del usuario
-                        data: { full_name: name } 
-                    }
-                });
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
 
-                if (error) throw error;
-
-                setAuthMessage({ type: 'success', text: `¡Cuenta creada! Revisa tu email para confirmar.` });
-                setMode('login');
+            if (response.ok) {
+                const data = await response.json();
+                if (mode === 'register') {
+                    setAuthMessage({ type: 'success', text: `¡Cuenta creada! Ya puedes ingresar.` });
+                    setMode('login');
+                } else {
+                    setAuthMessage({ type: 'success', text: `Bienvenido, ${data.name}.` });
+                    setAuthUser({ name: data.name, id: data.id });
+                    setTimeout(onClose, 1500); 
+                }
             } else {
-                // LOGIN: Usamos el método signInWithPassword
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-
-                if (error) throw error;
-
-                // Obtenemos el nombre desde la metadata o usamos el email como respaldo
-                const displayName = data.user.user_metadata?.full_name || data.user.email;
-
-                setAuthMessage({ type: 'success', text: `Bienvenido, ${displayName}.` });
-                setAuthUser({ name: displayName, id: data.user.id });
-                setTimeout(onClose, 1500); 
+                const errorData = await response.json();
+                setAuthMessage({ type: 'error', text: errorData.error || 'Error en la autenticación.' });
             }
         } catch (error) {
-            // Manejo de errores específicos de Supabase (ej: credenciales inválidas)
-            setAuthMessage({ type: 'error', text: error.message || 'Error en la autenticación.' });
+            setAuthMessage({ type: 'error', text: 'Error de conexión con el servidor.' });
         } finally {
             setIsLoading(false);
         }
@@ -78,6 +68,7 @@ const AuthModal = ({ isOpen, onClose, mode, setMode, setAuthMessage, setAuthUser
                 className="w-full max-w-md p-10 bg-[#fdfcf8] border border-stone-200 shadow-2xl relative overflow-hidden" 
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* Detalle decorativo superior típico de diseño editorial */}
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-700"></div>
 
                 <div className="flex justify-between items-center mb-8">
