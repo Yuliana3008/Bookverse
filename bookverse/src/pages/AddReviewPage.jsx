@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Edit3, Star, BookOpen, User, ImageIcon } from 'lucide-react'; 
 import { useOutletContext } from 'react-router-dom';
+import API_URL from '../config';
 
 const AddReviewPage = () => {
     // I. OBTENER CONTEXTO DEL LAYOUT
@@ -54,7 +55,7 @@ const AddReviewPage = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:4000/reviews', { 
+            const response = await fetch('${API_URL}/reviews', { 
                 method: 'POST',
                 // IMPORTANTE: NO incluir 'Content-Type', el navegador lo pone automáticamente con FormData
                 body: formData,

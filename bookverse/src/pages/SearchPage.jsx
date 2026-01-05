@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Star, User, BookOpen, Filter, Calendar, Sparkles } from "lucide-react";
+import API_URL from '../config';
 
 const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,7 +49,7 @@ const SearchPage = () => {
         sort: filters.sort
       }).toString();
 
-      const response = await fetch(`http://localhost:4000/reviews/search?${queryParams}`);
+      const response = await fetch(`${API_URL}/reviews/search?${queryParams}`);
   
       if (!response.ok) throw new Error("Error al consultar el catálogo");
 

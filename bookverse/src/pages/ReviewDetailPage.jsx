@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star, ArrowLeft, User, Calendar, Sparkles, Ghost, Heart, Search, Sword, Rocket, Eye, MessageSquare, Send } from "lucide-react";
+import API_URL from '../config';
 
 // --- COMPONENTE DE SECCIÓN DE COMENTARIOS ---
 const CommentsSection = ({ reviewId }) => {
@@ -12,7 +13,7 @@ const CommentsSection = ({ reviewId }) => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/reviews/${reviewId}/comments`);
+        const response = await fetch(`${API_URL}/reviews/${reviewId}/comments`);
         if (response.ok) {
           const data = await response.json();
           setComments(data);
@@ -30,7 +31,7 @@ const CommentsSection = ({ reviewId }) => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:4000/reviews/${reviewId}/comments`, {
+      const response = await fetch(`${API_URL}/reviews/${reviewId}/comments`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -124,7 +125,7 @@ const ReviewDetailPage = () => {
   useEffect(() => {
     const fetchReview = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/reviews/${id}`);
+        const response = await fetch(`${API_URL}/reviews/${id}`);
         if (!response.ok) throw new Error("Error al obtener la reseña");
         const data = await response.json();
         setReview(data);
@@ -153,7 +154,7 @@ const ReviewDetailPage = () => {
 
   if (!review) return <div className="p-20 text-center font-serif text-amber-900 animate-pulse">Desenrollando el pergamino...</div>;
 
-  const imageUrl = review.image_url ? `http://localhost:4000${review.image_url}` : "/placeholder-book.jpg";
+  const imageUrl = review.image_url ? `${API_URL}${review.image_url}` : "/placeholder-book.jpg";
   const { style, icon } = getGenreDetails(review.categoria_ia);
 
   return (

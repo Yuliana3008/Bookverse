@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { User, Mail, Save, ArrowLeft } from 'lucide-react';
+import API_URL from '../config';
 
 const EditProfilePage = () => {
   const { authUser, setAuthUser, setAuthMessage } = useOutletContext();
@@ -15,7 +16,7 @@ const EditProfilePage = () => {
     setAuthMessage(null);
 
     try {
-      const response = await fetch(`http://localhost:4000/auth/update-profile/${authUser.id}`, {
+      const response = await fetch(`${API_URL}/auth/update-profile/${authUser.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

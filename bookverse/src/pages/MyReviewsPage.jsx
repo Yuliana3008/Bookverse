@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Star, User, BookOpen, Sparkles, Ghost, Heart, Search, Sword, Rocket, EyeOff, Calendar } from "lucide-react";
+import API_URL from '../config';
 
 const MyReviewCard = ({ review }) => {
   const [revealed, setRevealed] = useState(false);
@@ -109,7 +110,7 @@ const MyReviewsPage = () => {
 
   useEffect(() => {
    // --- FETCH CORREGIDO A PUERTO 4000 ---
-   fetch(`http://localhost:4000/reviews/user/${userId}`)
+   fetch(`${API_URL}/reviews/user/${userId}`)
       .then((res) => res.json())
       .then((data) => {
         const formatted = data.map((review) => ({
@@ -118,7 +119,7 @@ const MyReviewsPage = () => {
           bookTitle: review.book_title,
           author: review.author,
           // --- CONCATENACIÓN DE URL DE IMAGEN ---
-          imageUrl: review.image_url ? `http://localhost:4000${review.image_url}` : null,
+          imageUrl: review.image_url ? `${API_URL}${review.image_url}` : null,
           rating: Number(review.rating) || 0,
           text: review.review_text,
           categoriaIA: review.categoria_ia,

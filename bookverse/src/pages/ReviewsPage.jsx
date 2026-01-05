@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom"; 
 import { Star, User, BookOpen, Sparkles, Ghost, Heart, Search, Sword, Rocket, EyeOff } from "lucide-react";
+import API_URL from '../config';
 
 // --- 1. Tarjeta de Reseña (ReviewCard) ---
 const ReviewCard = ({ review }) => {
@@ -59,7 +60,7 @@ const ReviewCard = ({ review }) => {
         {review.imageUrl && (
           <div className="mb-6 overflow-hidden border border-stone-200 shadow-inner bg-stone-100 aspect-[3/4]">
             <img 
-              src={`http://localhost:4000${review.imageUrl}`} 
+              src={`${API_URL}${review.imageUrl}`} 
               alt={review.bookTitle} 
               className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100"
               onError={(e) => e.target.style.display = 'none'}
@@ -137,7 +138,7 @@ export const RecentReviewsSection = ({ title = "Reseñas Recientes", limit = nul
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:4000/reviews") 
+    fetch("${API_URL}/reviews") 
       .then((res) => res.json())
       .then((data) => {
         let formattedReviews = data.map((review) => ({
