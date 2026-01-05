@@ -138,7 +138,7 @@ export const RecentReviewsSection = ({ title = "Reseñas Recientes", limit = nul
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("${API_URL}/reviews") 
+    fetch(`${API_URL}/reviews`) 
       .then((res) => res.json())
       .then((data) => {
         let formattedReviews = data.map((review) => ({
