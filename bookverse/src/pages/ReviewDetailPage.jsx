@@ -50,7 +50,7 @@ const CommentsSection = ({ reviewId }) => {
         setNewComment("");
       }
     } catch (error) {
-      console.error("❌ Error al publicar comentario:", error);
+      console.error("❌ Error al publicar comentario, intentelo de nuevo", error);
     } finally {
       setIsSubmitting(false);
     }
