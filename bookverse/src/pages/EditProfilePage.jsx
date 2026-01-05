@@ -16,7 +16,7 @@ const EditProfilePage = () => {
     setAuthMessage(null);
 
     try {
-      const response = await fetch(`${API_URL}/auth/update-profile/${authUser.id}`, {
+      const response = await fetch(`${API_URL}/api/auth/update-profile/${authUser.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

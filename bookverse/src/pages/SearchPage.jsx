@@ -49,7 +49,7 @@ const SearchPage = () => {
         sort: filters.sort
       }).toString();
 
-      const response = await fetch(`${API_URL}/reviews/search?${queryParams}`);
+      const response = await fetch(`${API_URL}/api/reviews/search?${queryParams}`);
   
       if (!response.ok) throw new Error("Error al consultar el catálogo");
 

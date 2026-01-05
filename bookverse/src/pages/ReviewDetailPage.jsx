@@ -13,7 +13,7 @@ const CommentsSection = ({ reviewId }) => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await fetch(`${API_URL}/reviews/${reviewId}/comments`);
+        const response = await fetch(`${API_URL}/api/reviews/${reviewId}/comments`);
         if (response.ok) {
           const data = await response.json();
           setComments(data);
@@ -31,7 +31,7 @@ const CommentsSection = ({ reviewId }) => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/reviews/${reviewId}/comments`, {
+      const response = await fetch(`${API_URL}/api/reviews/${reviewId}/comments`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -125,7 +125,7 @@ const ReviewDetailPage = () => {
   useEffect(() => {
     const fetchReview = async () => {
       try {
-        const response = await fetch(`${API_URL}/reviews/${id}`);
+        const response = await fetch(`${API_URL}/api/reviews/${id}`);
         if (!response.ok) throw new Error("Error al obtener la reseña");
         const data = await response.json();
         setReview(data);

@@ -110,7 +110,7 @@ const MyReviewsPage = () => {
 
   useEffect(() => {
    // --- FETCH CORREGIDO A PUERTO 4000 ---
-   fetch(`${API_URL}/reviews/user/${userId}`)
+   fetch(`${API_URL}/api/reviews/user/${userId}`)
       .then((res) => res.json())
       .then((data) => {
         const formatted = data.map((review) => ({

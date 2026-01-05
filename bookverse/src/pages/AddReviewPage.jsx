@@ -55,7 +55,7 @@ const AddReviewPage = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/reviews`, { 
+            const response = await fetch(`${API_URL}/api/reviews`, { 
                 method: 'POST',
                 // IMPORTANTE: NO incluir 'Content-Type', el navegador lo pone automáticamente con FormData
                 body: formData,

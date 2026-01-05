@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserPlus, LogIn, Mail, Lock, CheckCircle, XCircle } from 'lucide-react';
-
-const API_BASE_PATH = '/api';
+import API_URL from '../config';  // ✅ Importar API_URL
 
 const AuthModal = ({ isOpen, onClose, mode, setMode, setAuthMessage, setAuthUser, authMessage }) => {
     const [email, setEmail] = useState('');
@@ -24,8 +23,16 @@ const AuthModal = ({ isOpen, onClose, mode, setMode, setAuthMessage, setAuthUser
         setIsLoading(true);
         setAuthMessage(null);
 
-        const endpoint = mode === 'register' ? `${API_BASE_PATH}/auth/register` : `${API_BASE_PATH}/auth/login`;
-        const payload = mode === 'register' ? { name, email, password } : { email, password };
+        // ✅ Usar API_URL completo
+        const endpoint = mode === 'register' 
+            ? `${API_URL}/api/auth/register` 
+            : `${API_URL}/api/auth/login`;
+        
+        const payload = mode === 'register' 
+            ? { name, email, password } 
+            : { email, password };
+
+        console.log('🔍 Haciendo petición a:', endpoint); // Debug
 
         try {
             const response = await fetch(endpoint, {
@@ -37,19 +44,32 @@ const AuthModal = ({ isOpen, onClose, mode, setMode, setAuthMessage, setAuthUser
             if (response.ok) {
                 const data = await response.json();
                 if (mode === 'register') {
-                    setAuthMessage({ type: 'success', text: `¡Cuenta creada! Ya puedes ingresar.` });
+                    setAuthMessage({ 
+                        type: 'success', 
+                        text: `¡Cuenta creada! Ya puedes ingresar.` 
+                    });
                     setMode('login');
                 } else {
-                    setAuthMessage({ type: 'success', text: `Bienvenido, ${data.name}.` });
+                    setAuthMessage({ 
+                        type: 'success', 
+                        text: `Bienvenido, ${data.name}.` 
+                    });
                     setAuthUser({ name: data.name, id: data.id });
                     setTimeout(onClose, 1500); 
                 }
             } else {
                 const errorData = await response.json();
-                setAuthMessage({ type: 'error', text: errorData.error || 'Error en la autenticación.' });
+                setAuthMessage({ 
+                    type: 'error', 
+                    text: errorData.error || 'Error en la autenticación.' 
+                });
             }
         } catch (error) {
-            setAuthMessage({ type: 'error', text: 'Error de conexión con el servidor.' });
+            console.error('Error de conexión:', error);
+            setAuthMessage({ 
+                type: 'error', 
+                text: 'Error de conexión con el servidor.' 
+            });
         } finally {
             setIsLoading(false);
         }
