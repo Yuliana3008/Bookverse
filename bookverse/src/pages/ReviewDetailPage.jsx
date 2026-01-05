@@ -9,7 +9,6 @@ const CommentsSection = ({ reviewId }) => {
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Cargar comentarios desde el backend
   useEffect(() => {
     const fetchComments = async () => {
       try {
@@ -33,24 +32,17 @@ const CommentsSection = ({ reviewId }) => {
     try {
       const response = await fetch(`${API_URL}/api/reviews/${reviewId}/comments`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          // Si usas JWT, aquí deberías añadir el Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          text: newComment,
-          // El 'user' lo obtendrá el backend de la sesión o token
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newComment }),
       });
 
       if (response.ok) {
         const savedComment = await response.json();
-        // Insertamos el nuevo comentario arriba
         setComments([savedComment, ...comments]);
         setNewComment("");
       }
     } catch (error) {
-      console.error("❌ Error al publicar comentario, intentelo de nuevo", error);
+      console.error("❌ Error al publicar comentario:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -65,7 +57,6 @@ const CommentsSection = ({ reviewId }) => {
         </h3>
       </div>
 
-      {/* Formulario simplificado: Solo el texto */}
       <form onSubmit={handleSubmit} className="mb-12">
         <div className="relative group">
           <textarea
@@ -86,13 +77,11 @@ const CommentsSection = ({ reviewId }) => {
         </div>
       </form>
 
-      {/* Lista de comentarios de todas las personas */}
       <div className="space-y-8">
         {comments.length > 0 ? (
           comments.map((c) => (
             <div key={c.id} className="relative pl-6 border-l-2 border-amber-800/30 animate-in fade-in duration-500">
               <div className="flex items-center gap-3 mb-1">
-                {/* Aquí 'c.user' vendrá del join que hagas en tu base de datos */}
                 <span className="font-serif font-bold text-stone-900 text-sm">
                   {c.user_name || "Lector del Archivo"}
                 </span>
@@ -115,7 +104,7 @@ const CommentsSection = ({ reviewId }) => {
   );
 };
 
-// --- COMPONENTE PRINCIPAL (Sin cambios en la lógica de arriba) ---
+// --- COMPONENTE PRINCIPAL ---
 const ReviewDetailPage = () => {
   const { id } = useParams(); 
   const navigate = useNavigate();
@@ -141,20 +130,24 @@ const ReviewDetailPage = () => {
       return { style: 'bg-stone-100 text-stone-500 border-stone-200', icon: <Sparkles className="w-4 h-4" /> };
     }
     const cat = categoria.toLowerCase().trim();
-    const config = {
-      'terror': { style: 'bg-red-100 text-red-800 border-red-200 shadow-sm', icon: <Ghost className="w-4 h-4" /> },
-      'romance': { style: 'bg-rose-100 text-rose-800 border-rose-200 shadow-sm', icon: <Heart className="w-4 h-4" /> },
-      'suspenso': { style: 'bg-slate-200 text-slate-800 border-slate-300 shadow-sm', icon: <Search className="w-4 h-4" /> },
-      'fantasía': { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-sm', icon: <Sword className="w-4 h-4" /> },
-      'fantasia': { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-sm', icon: <Sword className="w-4 h-4" /> },
-      'ciencia ficción': { style: 'bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm', icon: <Rocket className="w-4 h-4" /> }
-    };
-    return config[cat] || { style: 'bg-stone-200 text-stone-700 border-stone-300', icon: <Sparkles className="w-4 h-4" /> };
+    if (cat.includes('terror')) return { style: 'bg-red-100 text-red-800 border-red-200 shadow-sm', icon: <Ghost className="w-4 h-4" /> };
+    if (cat.includes('romance')) return { style: 'bg-rose-100 text-rose-800 border-rose-200 shadow-sm', icon: <Heart className="w-4 h-4" /> };
+    if (cat.includes('suspenso')) return { style: 'bg-slate-200 text-slate-800 border-slate-300 shadow-sm', icon: <Search className="w-4 h-4" /> };
+    if (cat.includes('fantasía') || cat.includes('fantasia')) return { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-sm', icon: <Sword className="w-4 h-4" /> };
+    if (cat.includes('ciencia ficción')) return { style: 'bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm', icon: <Rocket className="w-4 h-4" /> };
+    
+    return { style: 'bg-stone-200 text-stone-700 border-stone-300', icon: <Sparkles className="w-4 h-4" /> };
   };
 
   if (!review) return <div className="p-20 text-center font-serif text-amber-900 animate-pulse">Desenrollando el pergamino...</div>;
 
-  const imageUrl = review.image_url ? `${API_URL}${review.image_url}` : "/placeholder-book.jpg";
+  // --- LÓGICA DE IMAGEN CORREGIDA ---
+  const imageUrl = review.image_url?.startsWith('http') 
+    ? review.image_url 
+    : review.image_url 
+      ? `${API_URL}${review.image_url}` 
+      : "https://via.placeholder.com/400x600?text=Sin+Portada";
+
   const { style, icon } = getGenreDetails(review.categoria_ia);
 
   return (
@@ -173,7 +166,10 @@ const ReviewDetailPage = () => {
               src={imageUrl} 
               alt={review.book_title}
               className="w-full h-full object-cover"
-              onError={(e) => { e.target.src = "/placeholder-book.jpg"; }}
+              onError={(e) => { 
+                e.target.onerror = null; 
+                e.target.src = "https://via.placeholder.com/400x600?text=Imagen+No+Disponible"; 
+              }}
             />
           </div>
 
@@ -239,7 +235,6 @@ const ReviewDetailPage = () => {
           </div>
         </article>
 
-        {/* --- SECCIÓN DE COMENTARIOS --- */}
         <CommentsSection reviewId={id} />
         
       </div>

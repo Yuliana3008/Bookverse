@@ -5,7 +5,6 @@ import API_URL from '../config';
 
 // --- 1. Tarjeta de Reseña (ReviewCard) ---
 const ReviewCard = ({ review }) => {
-  // --- ESTADO PARA REVELAR EN LA TARJETA ---
   const [revealed, setRevealed] = useState(false);
 
   const renderStars = (rating) => {
@@ -31,18 +30,23 @@ const ReviewCard = ({ review }) => {
       };
     }
     const cat = categoria.toLowerCase().trim();
-    const config = {
-      'terror': { style: 'bg-red-100 text-red-800 border-red-200 shadow-[0_0_8px_rgba(153,27,27,0.2)]', icon: <Ghost className="w-3 h-3" /> },
-      'romance': { style: 'bg-rose-100 text-rose-800 border-rose-200 shadow-[0_0_8px_rgba(157,23,77,0.2)]', icon: <Heart className="w-3 h-3" /> },
-      'suspenso': { style: 'bg-slate-200 text-slate-800 border-slate-300 shadow-[0_0_8px_rgba(30,41,59,0.2)]', icon: <Search className="w-3 h-3" /> },
-      'fantasía': { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-[0_0_8px_rgba(107,33,168,0.2)]', icon: <Sword className="w-3 h-3" /> },
-      'fantasia': { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-[0_0_8px_rgba(107,33,168,0.2)]', icon: <Sword className="w-3 h-3" /> },
-      'ciencia ficción': { style: 'bg-cyan-100 text-cyan-800 border-cyan-200 shadow-[0_0_8px_rgba(21,94,117,0.2)]', icon: <Rocket className="w-3 h-3" /> }
-    };
-    return config[cat] || { style: 'bg-stone-200 text-stone-700 border-stone-300', icon: <Sparkles className="w-3 h-3" /> };
+    if (cat.includes('terror')) return { style: 'bg-red-100 text-red-800 border-red-200 shadow-sm', icon: <Ghost className="w-3 h-3" /> };
+    if (cat.includes('romance')) return { style: 'bg-rose-100 text-rose-800 border-rose-200 shadow-sm', icon: <Heart className="w-3 h-3" /> };
+    if (cat.includes('suspenso')) return { style: 'bg-slate-200 text-slate-800 border-slate-300 shadow-sm', icon: <Search className="w-3 h-3" /> };
+    if (cat.includes('fantasía') || cat.includes('fantasia')) return { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-sm', icon: <Sword className="w-3 h-3" /> };
+    if (cat.includes('ciencia ficción')) return { style: 'bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm', icon: <Rocket className="w-3 h-3" /> };
+    
+    return { style: 'bg-stone-200 text-stone-700 border-stone-300', icon: <Sparkles className="w-3 h-3" /> };
   };
 
   const { style, icon } = getGenreDetails(review.categoriaIA);
+
+  // --- LÓGICA DE IMAGEN CORREGIDA PARA CLOUDINARY + LOCAL ---
+  const finalImageUrl = review.imageUrl?.startsWith('http') 
+    ? review.imageUrl 
+    : review.imageUrl 
+      ? `${API_URL}${review.imageUrl}` 
+      : "https://via.placeholder.com/400x600?text=Sin+Portada";
 
   return (
     <div className="block group transition-all duration-300 hover:-translate-y-2 h-full">
@@ -57,16 +61,17 @@ const ReviewCard = ({ review }) => {
           </span>
         </div>
 
-        {review.imageUrl && (
-          <div className="mb-6 overflow-hidden border border-stone-200 shadow-inner bg-stone-100 aspect-[3/4]">
-            <img 
-              src={`${API_URL}{review.imageUrl}`} 
-              alt={review.bookTitle} 
-              className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100"
-              onError={(e) => e.target.style.display = 'none'}
-            />
-          </div>
-        )}
+        <div className="mb-6 overflow-hidden border border-stone-200 shadow-inner bg-stone-100 aspect-[3/4]">
+          <img 
+            src={finalImageUrl} 
+            alt={review.bookTitle} 
+            className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://via.placeholder.com/400x600?text=Imagen+No+Disponible";
+            }}
+          />
+        </div>
 
         <div className="flex justify-between items-center mb-4 pl-2">
           <div className="flex items-center space-x-2">
@@ -90,7 +95,6 @@ const ReviewCard = ({ review }) => {
           de {review.author}
         </p>
 
-        {/* --- LÓGICA DE SPOILER PARA LA TARJETA --- */}
         <div className="relative mb-6 flex-grow">
           {review.isSpoiler && !revealed ? (
             <div className="relative overflow-hidden cursor-default">
@@ -100,7 +104,7 @@ const ReviewCard = ({ review }) => {
               <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center bg-stone-100/10">
                 <button 
                   onClick={(e) => {
-                    e.preventDefault(); // Evita que el Link redireccione al hacer clic en el botón
+                    e.preventDefault();
                     e.stopPropagation();
                     setRevealed(true);
                   }}
@@ -146,11 +150,10 @@ export const RecentReviewsSection = ({ title = "Reseñas Recientes", limit = nul
           user: review.user, 
           bookTitle: review.book_title,
           author: review.author,
-          imageUrl: review.image_url,
+          imageUrl: review.image_url, // Se mapea directo de la DB
           rating: Number(review.rating) || 0,
           text: review.review_text,
           categoriaIA: review.categoria_ia,
-          // --- NUEVO CAMPO MAPEADO ---
           isSpoiler: review.is_spoiler, 
           date: review.created_at
             ? new Date(review.created_at).toLocaleDateString("es-MX", {
@@ -161,7 +164,7 @@ export const RecentReviewsSection = ({ title = "Reseñas Recientes", limit = nul
 
         if (limit) {
           formattedReviews = formattedReviews
-            .sort(() => 0.5 - Math.random())
+            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenamos por fecha
             .slice(0, limit);
         }
 
