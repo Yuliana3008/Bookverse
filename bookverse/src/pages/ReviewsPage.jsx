@@ -60,7 +60,7 @@ const ReviewCard = ({ review }) => {
         {review.imageUrl && (
           <div className="mb-6 overflow-hidden border border-stone-200 shadow-inner bg-stone-100 aspect-[3/4]">
             <img 
-              src={`${API_URL}${review.imageUrl}`} 
+              src={`${API_URL}{review.imageUrl}`} 
               alt={review.bookTitle} 
               className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100"
               onError={(e) => e.target.style.display = 'none'}
