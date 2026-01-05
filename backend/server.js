@@ -50,7 +50,10 @@ const app = express();
 // --- CONFIGURACIÓN DE CORS OPTIMIZADA ---
 // Esto permite que el navegador acepte las respuestas PUT y lea el JSON de éxito
 app.use(cors({
-  origin: "http://localhost:5173", // URL de tu frontend en Vite
+  origin: [
+    "http://localhost:5173", 
+    "https://bookverse-git-main-yuliana-sanchezs-projects.vercel.app"
+  ],  // URL de tu frontend en Vite
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
