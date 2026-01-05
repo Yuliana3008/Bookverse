@@ -51,7 +51,7 @@ const UserActionSection = () => (
     <section id="acciones-usuario" className="py-24 bg-stone-100 border-y border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl font-serif font-bold text-stone-800 mb-12 italic">
-                ¡Bienvenido de Nuevo!
+                ¡ Bienvenido de Nuevo !
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
