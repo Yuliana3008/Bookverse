@@ -203,7 +203,7 @@ const ReviewDetailPage = () => {
                   </p>
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-200/30 rounded-lg border-2 border-dashed border-amber-900/30 p-6 text-center">
                     <p className="text-amber-900 font-serif font-bold text-lg mb-4">
-                      ⚠️ El Archivero advierte: Esta reseña contiene secretos de la trama.
+                      ⚠️ Advertencia: Esta reseña contiene spoilers de la trama.
                     </p>
                     <button 
                       onClick={() => setRevealed(true)}

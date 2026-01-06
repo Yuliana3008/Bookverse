@@ -1,14 +1,14 @@
 import express from "express";
 import pool from "../config/db.js";
 import multer from "multer";
-import natural from "natural";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
+import Groq from "groq-sdk";
 
 const router = express.Router();
 
 /* =========================================================
-   1. CONFIGURACIÓN DE CLOUDINARY (Subida Remota)
+   CONFIGURACIÓN
 ========================================================= */
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -26,97 +26,226 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
+// Inicializar Groq
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
+
 /* =========================================================
-   2. IA DE DETECCIÓN DE SPOILERS
+   ANÁLISIS CON GROQ
 ========================================================= */
-async function detectSpoilerWithIA(text) {
-  if (!text) return false;
+async function analyzeReviewWithGroq(reviewText, bookTitle, bookAuthor) {
   try {
-    const apiUrl = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta";
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.HF_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: `¿Esta reseña tiene spoilers del final? Responde solo SI o NO: "${text}"`,
-        options: { wait_for_model: true }
-      }),
+    console.log("🤖 Consultando Groq AI...");
+    
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto bibliotecario y crítico literario. Analizas reseñas de libros para detectar el género y spoilers. Respondes SOLO en formato JSON válido."
+        },
+        {
+          role: "user",
+          content: `Analiza esta reseña de libro:
+
+LIBRO: "${bookTitle}" por ${bookAuthor}
+RESEÑA: "${reviewText}"
+
+TAREA 1 - GÉNERO:
+Identifica el género literario principal entre:
+- Terror/Horror
+- Romance
+- Suspenso/Thriller
+- Fantasía
+- Ciencia Ficción
+- Autoayuda
+- Aventura
+- Drama
+- Histórico
+- Biografía
+- Humor
+- General
+
+Si detectas 2 géneros igual de prominentes, márcalo como híbrido.
+
+TAREA 2 - SPOILERS:
+Detecta si contiene SPOILERS que arruinen la experiencia:
+- Revela el final o desenlace
+- Menciona muertes importantes
+- Revela identidades secretas
+- Describe giros argumentales clave
+
+NO son spoilers:
+- Opiniones generales
+- Descripciones vagas
+- Recomendaciones generales
+
+Responde en este formato JSON EXACTO:
+{
+  "genero_principal": "nombre del género",
+  "genero_secundario": "nombre o null",
+  "es_hibrido": true/false,
+  "tiene_spoiler": true/false,
+  "confianza_genero": 0-100,
+  "confianza_spoiler": 0-100,
+  "razon_spoiler": "explicación breve",
+  "keywords": ["palabra1", "palabra2"]
+}`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 400,
+      response_format: { type: "json_object" }
     });
-    const result = await response.json();
-    const verdict = result[0]?.generated_text?.toUpperCase() || "";
-    return verdict.includes("SI") || verdict.includes("SPOILER");
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    
+    // Formatear género
+    let generoFinal;
+    if (result.es_hibrido && result.genero_secundario) {
+      generoFinal = `Híbrido: ${result.genero_principal} y ${result.genero_secundario}`;
+    } else {
+      generoFinal = result.genero_principal;
+    }
+
+    console.log(`✅ Groq Completado:`);
+    console.log(`   📚 Género: ${generoFinal} (${result.confianza_genero}%)`);
+    console.log(`   🚨 Spoiler: ${result.tiene_spoiler} (${result.confianza_spoiler}%)`);
+    console.log(`   💬 Razón: ${result.razon_spoiler}`);
+
+    return {
+      genre: generoFinal,
+      isSpoiler: result.tiene_spoiler,
+      genreConfidence: result.confianza_genero,
+      spoilerConfidence: result.confianza_spoiler,
+      reason: result.razon_spoiler,
+      keywords: result.keywords || []
+    };
+
   } catch (error) {
-    const spoilerKeywords = ["muere", "final", "asesino", "revela", "termina", "descubre", "traicion"];
-    return spoilerKeywords.some((word) => text.toLowerCase().includes(word));
+    console.error("❌ Error en Groq:", error.message);
+    
+    // FALLBACK: Sistema local
+    console.log("⚠️ Usando detección local como respaldo...");
+    return {
+      genre: detectGenreLocal(reviewText),
+      isSpoiler: detectSpoilerLocal(reviewText),
+      genreConfidence: 75,
+      spoilerConfidence: 75,
+      reason: "Análisis local (Groq no disponible)",
+      keywords: []
+    };
   }
 }
 
 /* =========================================================
-   3. IA DE GÉNEROS (Scoring Ponderado)
+   DETECCIÓN LOCAL (BACKUP)
 ========================================================= */
-const classifier = new natural.BayesClassifier();
-classifier.addDocument("miedo fantasma sangre muerte oscuro asesino terror aterrador horror", "Terror");
-classifier.addDocument("amor beso enamorados corazón relación pareja romántico boda pasión", "Romance");
-classifier.addDocument("crimen detective pista misterio secreto culpable investigación", "Suspenso");
-classifier.addDocument("magia dragón espada reino rey héroe leyenda épico aventura", "Fantasía");
-classifier.addDocument("nave espacio planeta alienígena robot tecnología galaxia", "Ciencia Ficción");
-classifier.addDocument("superación bienestar hábito mentalidad motivación éxito resiliencia", "Autoayuda");
-classifier.train();
-
-function getEnhancedGenre(text) {
-  const reglas = [
-    { nombre: "Terror", regex: /miedo|sangre|asesin|terror|muert|fantasma/gi },
-    { nombre: "Romance", regex: /amor|beso|pareja|romance|pasi[óo]n/gi },
-    { nombre: "Suspenso", regex: /misterio|detective|crimen|secreto|intriga/gi },
-    { nombre: "Fantasía", regex: /magia|drag[óo]n|espada|reino/gi },
-    { nombre: "Ciencia Ficción", regex: /nave|espacio|robot|futuro|tecnolog[íi]a/gi },
-    { nombre: "Autoayuda", regex: /superaci[óo]n|bienestar|motivaci[óo]n/gi },
+function detectSpoilerLocal(text) {
+  if (!text) return false;
+  
+  const criticalPatterns = [
+    /al final.*muere/i,
+    /muere (al|en el|en la) final/i,
+    /el (asesino|culpable|traidor) es/i,
+    /resulta (que|ser)/i,
+    /se revela que.*(es|era)/i,
+    /spoiler alert/i,
   ];
-  const aiScores = classifier.getClassifications(text.toLowerCase());
-  const finalScores = aiScores.map(ai => {
-    const regla = reglas.find(r => r.nombre === ai.label);
-    const coincidencias = (text.match(regla.regex) || []).length;
-    return { label: ai.label, score: ai.value + (coincidencias * 0.5) };
-  }).sort((a, b) => b.score - a.score);
-
-  const principal = finalScores[0];
-  const secundario = finalScores[1];
-
-  if (principal.score < 0.1) return "General";
-  if (secundario && secundario.score > principal.score * 0.6) {
-    return `Híbrido: ${principal.label} y ${secundario.label}`;
+  
+  for (const pattern of criticalPatterns) {
+    if (pattern.test(text)) {
+      console.log(`🚨 [LOCAL] Spoiler: ${pattern.source}`);
+      return true;
+    }
   }
-  return principal.label;
+  
+  console.log(`✅ [LOCAL] Sin spoilers`);
+  return false;
+}
+
+function detectGenreLocal(text) {
+  const lowerText = text.toLowerCase();
+  
+  const genres = [
+    { name: "Terror", words: ["miedo", "sangre", "terror", "horror", "fantasma"] },
+    { name: "Romance", words: ["amor", "beso", "romance", "pasión", "pareja"] },
+    { name: "Fantasía", words: ["magia", "dragón", "espada", "reino", "héroe"] },
+    { name: "Suspenso", words: ["misterio", "detective", "crimen", "secreto"] },
+    { name: "Ciencia Ficción", words: ["espacio", "robot", "futuro", "nave", "tecnología"] },
+  ];
+  
+  for (const genre of genres) {
+    const matches = genre.words.filter(word => lowerText.includes(word)).length;
+    if (matches >= 2) {
+      console.log(`📚 [LOCAL] Género: ${genre.name}`);
+      return genre.name;
+    }
+  }
+  
+  return "General";
 }
 
 /* =========================================================
-   4. RUTAS
+   RUTAS
 ========================================================= */
 
+// CREAR RESEÑA
 router.post("/", upload.single("image"), async (req, res) => {
   const { usuarios_id, book_title, book_id, rating, review_text, author } = req.body;
-  
-  // AQUÍ ESTÁ EL CAMBIO: Ahora image_url será "https://res.cloudinary.com/..."
-  const image_url = req.file ? req.file.path : null; 
-
-  const categoriaFinal = getEnhancedGenre(review_text);
-  const isSpoiler = await detectSpoilerWithIA(review_text);
+  const image_url = req.file ? req.file.path : null;
 
   try {
+    console.log("\n" + "=".repeat(70));
+    console.log(`📖 NUEVA RESEÑA: "${book_title}" por ${author}`);
+    console.log("=".repeat(70));
+
+    // Verificar si Groq está configurado
+    let analysis;
+    if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.startsWith('gsk_')) {
+      analysis = await analyzeReviewWithGroq(review_text, book_title, author);
+    } else {
+      console.log("⚡ Groq no configurado, usando detección local");
+      analysis = {
+        genre: detectGenreLocal(review_text),
+        isSpoiler: detectSpoilerLocal(review_text),
+        genreConfidence: 75,
+        spoilerConfidence: 75,
+        reason: "Detección local",
+        keywords: []
+      };
+    }
+
     const query = `
       INSERT INTO reviews (usuarios_id, book_title, book_id, rating, review_text, author, image_url, categoria_ia, is_spoiler)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
     `;
-    const result = await pool.query(query, [usuarios_id, book_title, book_id, rating, review_text, author, image_url, categoriaFinal, isSpoiler]);
-    res.status(201).json(result.rows[0]);
+    
+    const result = await pool.query(query, [
+      usuarios_id, book_title, book_id, rating, review_text, 
+      author, image_url, analysis.genre, analysis.isSpoiler
+    ]);
+    
+    console.log(`\n✅ GUARDADO | Género: ${analysis.genre} | Spoiler: ${analysis.isSpoiler}`);
+    console.log("=".repeat(70) + "\n");
+    
+    res.status(201).json({
+      ...result.rows[0],
+      ai_analysis: {
+        genre_confidence: analysis.genreConfidence,
+        spoiler_confidence: analysis.spoilerConfidence,
+        reason: analysis.reason
+      }
+    });
+    
   } catch (error) {
+    console.error("❌ Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- RUTA DE BÚSQUEDA ---
+// BÚSQUEDA
 router.get("/search", async (req, res) => {
   try {
     const { q, rating, genre, sort } = req.query;
@@ -140,11 +269,11 @@ router.get("/search", async (req, res) => {
     const result = await pool.query(query, values);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: "Error en la búsqueda" });
+    res.status(500).json({ error: "Error en búsqueda" });
   }
 });
 
-// --- OBTENER TODAS ---
+// OBTENER TODAS
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -158,7 +287,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// --- OBTENER POR ID ---
+// OBTENER POR ID
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
@@ -172,7 +301,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// --- ELIMINAR ---
+// ELIMINAR
 router.delete("/:id", async (req, res) => {
   try {
     await pool.query("DELETE FROM reviews WHERE id = $1", [req.params.id]);
