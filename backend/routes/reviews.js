@@ -8,8 +8,9 @@ import Groq from "groq-sdk";
 const router = express.Router();
 
 /* =========================================================
-   1. CONFIGURACIÓN DE SERVICIOS (CLOUDINARY & GROQ)
+    1. CONFIGURACIÓN DE MIDDLEWARES Y CLIENTES
 ========================================================= */
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -31,8 +32,9 @@ const groq = new Groq({
 });
 
 /* =========================================================
-   2. LÓGICA DE ANÁLISIS CON GROQ AI
+    2. LÓGICA DE ANÁLISIS CON GROQ AI
 ========================================================= */
+
 async function analyzeReviewWithGroq(reviewText, bookTitle, bookAuthor) {
   try {
     console.log("🤖 Consultando Groq AI...");
@@ -95,9 +97,6 @@ async function analyzeReviewWithGroq(reviewText, bookTitle, bookAuthor) {
   }
 }
 
-/* =========================================================
-   3. DETECCIÓN LOCAL (BACKUP / FALLBACK)
-========================================================= */
 function detectSpoilerLocal(text) {
   if (!text) return false;
   const criticalPatterns = [/al final.*muere/i, /el asesino es/i, /spoiler alert/i, /muere al final/i];
@@ -119,10 +118,103 @@ function detectGenreLocal(text) {
 }
 
 /* =========================================================
-   4. RUTAS DE RESEÑAS
+    3. RUTAS DE BÚSQUEDA Y FILTRADO (LA CLAVE)
 ========================================================= */
 
-// CREAR RESEÑA
+// BÚSQUEDA AVANZADA (Para SearchPage.jsx)
+router.get("/search", async (req, res) => {
+  try {
+    const { q, genre, rating, sort } = req.query;
+    
+    // Importante: u.name AS name para que el frontend lo reconozca
+    let query = `
+      SELECT r.*, u.name AS name 
+      FROM reviews r 
+      JOIN usuarios u ON u.id = r.usuarios_id 
+      WHERE 1=1
+    `;
+    const values = [];
+
+    // Búsqueda por texto (Título, Autor o Reseña)
+    if (q && q.trim() !== "") {
+      values.push(`%${q}%`);
+      query += ` AND (r.book_title ILIKE $${values.length} OR r.author ILIKE $${values.length} OR r.review_text ILIKE $${values.length})`;
+    }
+
+    // Filtro por Género IA
+    if (genre && genre !== "" && genre !== "Todas") {
+      values.push(`%${genre}%`);
+      query += ` AND r.categoria_ia ILIKE $${values.length}`;
+    }
+
+    // Filtro por Calificación (Rating)
+    if (rating && rating !== "") {
+      values.push(parseInt(rating));
+      query += ` AND r.rating = $${values.length}`;
+    }
+
+    // Ordenamiento
+    query += sort === "asc" ? " ORDER BY r.created_at ASC" : " ORDER BY r.created_at DESC";
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("❌ Error en ruta /search:", error.message);
+    res.status(500).json({ error: "Error interno al buscar en el catálogo" });
+  }
+});
+
+/* =========================================================
+    4. RUTAS CRUD DE RESEÑAS
+========================================================= */
+
+// OBTENER TODAS (O ÚLTIMAS 9)
+router.get("/", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT r.*, u.name AS name FROM reviews r 
+      JOIN usuarios u ON u.id = r.usuarios_id 
+      ORDER BY r.created_at DESC LIMIT 9;
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// OBTENER RESEÑAS DE UN USUARIO ESPECÍFICO
+router.get("/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(
+      `SELECT r.*, u.name AS name 
+       FROM reviews r 
+       JOIN usuarios u ON u.id = r.usuarios_id 
+       WHERE r.usuarios_id = $1 
+       ORDER BY r.created_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener reseñas del usuario" });
+  }
+});
+
+// OBTENER UNA SOLA POR ID
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT r.*, u.name AS user_name FROM reviews r JOIN usuarios u ON u.id = r.usuarios_id WHERE r.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: "Reseña no hallada" });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CREAR NUEVA RESEÑA
 router.post("/", upload.single("image"), async (req, res) => {
   const { usuarios_id, book_title, book_id, rating, review_text, author } = req.body;
   const image_url = req.file ? req.file.path : null;
@@ -146,20 +238,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   }
 });
 
-// OBTENER POR ID
-router.get("/:id", async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT r.*, u.name AS user_name FROM reviews r JOIN usuarios u ON u.id = r.usuarios_id WHERE r.id = $1`,
-      [req.params.id]
-    );
-    res.json(result.rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- EDITAR CRÓNICA (RESEÑA PRINCIPAL) ---
+// EDITAR RESEÑA
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -179,15 +258,11 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// --- ELIMINAR RESEÑA Y COMENTARIOS ASOCIADOS ---
+// ELIMINAR RESEÑA COMPLETA
 router.delete("/full/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Primero borramos los comentarios por integridad de la base de datos
     await pool.query("DELETE FROM comments WHERE review_id = $1", [id]);
-    
-    // Luego borramos la reseña
     const result = await pool.query("DELETE FROM reviews WHERE id = $1 RETURNING id", [id]);
 
     if (result.rowCount === 0) return res.status(404).json({ error: "Reseña no encontrada" });
@@ -198,10 +273,9 @@ router.delete("/full/:id", async (req, res) => {
 });
 
 /* =========================================================
-   5. RUTAS DE COMENTARIOS (CRUD COMPLETO)
+    5. RUTAS DE COMENTARIOS
 ========================================================= */
 
-// OBTENER COMENTARIOS DE UNA RESEÑA
 router.get("/:id/comments", async (req, res) => {
   try {
     const { id } = req.params;
@@ -215,20 +289,16 @@ router.get("/:id/comments", async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    console.error("❌ Error al obtener comentarios:", error.message);
     res.status(500).json({ error: "Error al obtener comentarios" });
   }
 });
 
-// CREAR COMENTARIO
 router.post("/:id/comments", async (req, res) => {
   try {
     const { id } = req.params; 
     const { text, usuarios_id } = req.body; 
 
-    if (!text || !usuarios_id) {
-      return res.status(400).json({ error: "Faltan datos obligatorios" });
-    }
+    if (!text || !usuarios_id) return res.status(400).json({ error: "Faltan datos" });
 
     const insertResult = await pool.query(
       `INSERT INTO comments (review_id, comment_text, usuarios_id, created_at)
@@ -246,92 +316,16 @@ router.post("/:id/comments", async (req, res) => {
 
     res.status(201).json(finalResult.rows[0]);
   } catch (error) {
-    console.error("❌ Error al guardar comentario:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-// GUARDAR EDICIÓN DE COMENTARIO 
-router.post("/comments/:commentId", async (req, res) => {
-  try {
-    const { commentId } = req.params;
-    const { text } = req.body;
-
-    if (!text) return res.status(400).json({ error: "El texto es requerido" });
-
-    const result = await pool.query(
-      `UPDATE comments 
-       SET comment_text = $1 
-       WHERE id = $2 
-       RETURNING id, comment_text AS text, created_at, usuarios_id`,
-      [text, commentId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Comentario no encontrado" });
-    }
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("❌ Error al editar comentario:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ELIMINAR COMENTARIO
 router.delete("/comments/:commentId", async (req, res) => {
   try {
     const { commentId } = req.params;
     const result = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING id", [commentId]);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Comentario no encontrado" });
-    }
-
-    res.json({ message: "Comentario eliminado correctamente", id: commentId });
-  } catch (error) {
-    console.error("❌ Error al eliminar comentario:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/* =========================================================
-   6. OTRAS RUTAS (BÚSQUEDA, LISTADO)
-========================================================= */
-
-// BUSCADOR
-router.get("/search", async (req, res) => {
-  try {
-    const { q, genre, sort } = req.query;
-    let query = `SELECT r.*, u.name AS user FROM reviews r JOIN usuarios u ON u.id = r.usuarios_id WHERE 1=1`;
-    const values = [];
-
-    if (q) {
-      values.push(`%${q}%`);
-      query += ` AND (r.book_title ILIKE $${values.length} OR r.author ILIKE $${values.length})`;
-    }
-    if (genre && genre !== "Todas") {
-      values.push(`%${genre}%`);
-      query += ` AND r.categoria_ia ILIKE $${values.length}`;
-    }
-    query += sort === "asc" ? " ORDER BY r.created_at ASC" : " ORDER BY r.created_at DESC";
-
-    const result = await pool.query(query, values);
-    res.json(result.rows);
-  } catch (error) {
-    res.status(500).json({ error: "Error en búsqueda" });
-  }
-});
-
-// FEED GLOBAL
-router.get("/", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT r.*, u.name AS user FROM reviews r 
-      JOIN usuarios u ON u.id = r.usuarios_id 
-      ORDER BY r.created_at DESC LIMIT 9;
-    `);
-    res.json(result.rows);
+    if (result.rowCount === 0) return res.status(404).json({ error: "No existe" });
+    res.json({ message: "Eliminado", id: commentId });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
