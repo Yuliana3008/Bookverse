@@ -41,7 +41,8 @@ const ReviewCard = ({ review }) => {
 
   const { style, icon } = getGenreDetails(review.categoriaIA);
 
-  // --- LÓGICA DE IMAGEN CORREGIDA PARA CLOUDINARY + LOCAL ---
+  // --- LÓGICA DE IMAGEN CORREGIDA ---
+  // Si la URL empieza con http (Cloudinary), se usa directa. Si no, se le suma el API_URL.
   const finalImageUrl = review.imageUrl?.startsWith('http') 
     ? review.imageUrl 
     : review.imageUrl 
@@ -78,6 +79,7 @@ const ReviewCard = ({ review }) => {
             <div className="bg-stone-100 p-1 rounded border border-stone-200">
               <User className="w-4 h-4 text-stone-600" />
             </div>
+            {/* --- CORRECCIÓN DE NOMBRE --- */}
             <p className="font-serif text-xs font-bold text-stone-600 truncate max-w-[120px]">
               {review.user}
             </p>
@@ -147,10 +149,11 @@ export const RecentReviewsSection = ({ title = "Reseñas Recientes", limit = nul
       .then((data) => {
         let formattedReviews = data.map((review) => ({
           id: review.id,
-          user: review.user, 
+          // --- CORRECCIÓN: Usar review.name que viene del JOIN en tu backend ---
+          user: review.name || "Usuario", 
           bookTitle: review.book_title,
           author: review.author,
-          imageUrl: review.image_url, // Se mapea directo de la DB
+          imageUrl: review.image_url, 
           rating: Number(review.rating) || 0,
           text: review.review_text,
           categoriaIA: review.categoria_ia,
@@ -163,9 +166,8 @@ export const RecentReviewsSection = ({ title = "Reseñas Recientes", limit = nul
         }));
 
         if (limit) {
-          formattedReviews = formattedReviews
-            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenamos por fecha
-            .slice(0, limit);
+          // Ya vienen ordenados del backend, pero aseguramos el slice
+          formattedReviews = formattedReviews.slice(0, limit);
         }
 
         setReviews(formattedReviews);

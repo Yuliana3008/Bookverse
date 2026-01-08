@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom'; // Se agregó useNavigate
 import { CheckCircle, XCircle, BookOpen } from 'lucide-react'; 
 
 import Navbar from '../components/Navbar'; 
@@ -7,6 +7,8 @@ import AuthModal from '../components/AuthModal';
 import Footer from '../components/Footer'; 
 
 const BookVerseLayout = () => {
+    const navigate = useNavigate(); // Inicialización del hook para navegación
+
     // Estado de autenticación
     const [authUser, setAuthUser] = useState(() => {
         const storedUser = localStorage.getItem('authUser');
@@ -44,7 +46,7 @@ const BookVerseLayout = () => {
         }
     }, [authMessage]);
 
-    // Marcar como listo después de cargar (Pantalla de carga con estilo editorial)
+    // Marcar como listo después de cargar
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsReady(true);
@@ -67,13 +69,16 @@ const BookVerseLayout = () => {
         setAuthUser(null);
         localStorage.removeItem('authUser');
         setAuthMessage({ type: 'success', text: 'Sesión cerrada exitosamente' });
+        
+        // REDIRECCIÓN: Envía al usuario al inicio para que no vea la página vacía de "Mis Reseñas"
+        navigate('/'); 
     };
 
     const handleEditProfile = () => {
         console.log('Editar perfil - Usuario:', authUser);
     };
 
-    // --- PANTALLA DE CARGA (Estilo Pergamino para no lastimar la vista) ---
+    // --- PANTALLA DE CARGA ---
     if (!isReady) {
         return (
             <div className="flex flex-col justify-center items-center h-screen bg-[#e9e4d5]">
@@ -87,7 +92,6 @@ const BookVerseLayout = () => {
     }
 
     return (
-        /* Fondo base pergamino para que todo el sitio sea cálido */
         <div className="min-h-screen font-serif bg-[#f4f1ea] selection:bg-amber-200">
             <Navbar
                 isAuthenticated={isAuthenticated}
@@ -99,7 +103,7 @@ const BookVerseLayout = () => {
             />
             
             <main className="relative">
-                {/* --- NOTIFICACIONES FLOTANTES (Estilo Editorial) --- */}
+                {/* --- NOTIFICACIONES FLOTANTES --- */}
                 {authMessage && (
                     <div className={`fixed top-24 right-6 z-[60] p-5 border-l-4 shadow-2xl transform transition-all duration-500 animate-in fade-in slide-in-from-right ${
                         authMessage.type === 'success' 
@@ -138,7 +142,6 @@ const BookVerseLayout = () => {
             
             <Footer />
             
-            {/* El modal también debe recibir los nuevos estilos internamente en su propio archivo */}
             <AuthModal
                 isOpen={isModalOpen}
                 onClose={closeModal}

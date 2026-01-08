@@ -65,11 +65,13 @@ const MyReviewCard = ({ review }) => {
             <div className="bg-stone-100 p-1 rounded border border-stone-200">
               <User className="w-4 h-4 text-stone-600" />
             </div>
+            {/* --- CORRECCIÓN DE NOMBRE DE USUARIO --- */}
             <p className="font-serif text-xs font-bold text-stone-600 truncate max-w-[120px]">{review.user}</p>
           </div>
           <div className="flex bg-amber-50/50 p-1 border border-amber-100/50 rounded shadow-sm">{renderStars(review.rating)}</div>
         </div>
 
+        <h3 className="text-xl font-serif font-black text-stone-900 mb-1 pl-2 leading-tight group-hover:text-amber-900 transition-colors">{review.bookTitle}</h3>
         <h3 className="text-xl font-serif font-black text-stone-900 mb-1 pl-2 leading-tight group-hover:text-amber-900 transition-colors">{review.bookTitle}</h3>
         <p className="text-amber-900 font-sans font-bold italic text-[10px] mb-4 pl-2 uppercase tracking-widest opacity-80">de {review.author}</p>
 
@@ -109,17 +111,17 @@ const MyReviewsPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-   // --- FETCH CORREGIDO A PUERTO 4000 ---
    fetch(`${API_URL}/api/reviews/user/${userId}`)
       .then((res) => res.json())
       .then((data) => {
         const formatted = data.map((review) => ({
           id: review.id,
-          user: review.user || "Usuario", 
+          // --- CORRECCIÓN: Usar 'review.name' que viene del JOIN en tu backend ---
+          user: review.name || "Usuario", 
           bookTitle: review.book_title,
           author: review.author,
-          // --- CONCATENACIÓN DE URL DE IMAGEN ---
-          imageUrl: review.image_url ? `${API_URL}${review.image_url}` : null,
+          // --- CORRECCIÓN: Cloudinary ya entrega URLs completas (http...), no sumamos API_URL ---
+          imageUrl: review.image_url || null,
           rating: Number(review.rating) || 0,
           text: review.review_text,
           categoriaIA: review.categoria_ia,
