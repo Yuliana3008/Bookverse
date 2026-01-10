@@ -330,5 +330,154 @@ router.delete("/comments/:commentId", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+/* =========================================================
+    6. RUTA DE RECOMENDACIONES CON IA
+    Agregar ANTES de: export default router;
+========================================================= */
+
+router.post("/recommend", async (req, res) => {
+  try {
+    const { userDescription } = req.body;
+
+    if (!userDescription) {
+      return res.status(400).json({ error: 'Se requiere una descripción' });
+    }
+
+    console.log("🔍 Buscando recomendaciones para:", userDescription);
+
+    // 1. Obtener recomendaciones de Groq
+    const prompt = `Eres un experto en literatura. Un usuario busca un libro con estas características:
+
+"${userDescription}"
+
+Recomienda EXACTAMENTE 2 libros que coincidan con esta descripción. 
+Responde ÚNICAMENTE en formato JSON sin texto adicional:
+{
+  "libros": [
+    {
+      "titulo": "Título exacto del libro",
+      "autor": "Nombre del autor",
+      "isbn": "ISBN si lo conoces, sino null",
+      "genero": "Género literario",
+      "anio": año de publicación,
+      "razon": "Breve explicación de por qué este libro coincide (máximo 100 palabras)"
+    }
+  ]
+}`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "Eres un bibliotecario experto que recomienda libros. Respondes únicamente en formato JSON válido."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 1000,
+      response_format: { type: "json_object" }
+    });
+
+    let recomendaciones;
+    try {
+      recomendaciones = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      console.log("✅ Recomendaciones obtenidas:", recomendaciones);
+    } catch (parseError) {
+      console.error('❌ Error parseando JSON de Groq:', parseError);
+      return res.status(500).json({ error: 'Error procesando la respuesta de la IA' });
+    }
+
+    // 2. Verificar si los libros están en la BD
+    const librosConInfo = await Promise.all(
+      recomendaciones.libros.map(async (libro) => {
+        try {
+          // Buscar por título en la tabla reviews
+          const result = await pool.query(
+            `SELECT DISTINCT ON (book_title) 
+              r.id, 
+              r.book_title, 
+              r.author, 
+              r.image_url,
+              r.book_id,
+              r.categoria_ia as genero,
+              COUNT(*) OVER (PARTITION BY r.book_title) as review_count
+             FROM reviews r 
+             WHERE LOWER(r.book_title) LIKE LOWER($1) 
+             LIMIT 1`,
+            [`%${libro.titulo}%`]
+          );
+
+          if (result.rows.length > 0) {
+            // El libro existe en la BD
+            const libroEnBD = result.rows[0];
+            
+            // Obtener las reseñas del libro
+            const reviewsResult = await pool.query(
+              `SELECT r.*, u.name AS user_name 
+               FROM reviews r 
+               JOIN usuarios u ON r.usuarios_id = u.id 
+               WHERE LOWER(r.book_title) = LOWER($1) 
+               ORDER BY r.created_at DESC 
+               LIMIT 5`,
+              [libroEnBD.book_title]
+            );
+
+            return {
+              ...libro,
+              enBD: true,
+              bookTitle: libroEnBD.book_title,
+              detalles: {
+                titulo: libroEnBD.book_title,
+                autor: libroEnBD.author,
+                genero: libroEnBD.genero || libro.genero,
+                imagen: libroEnBD.image_url,
+                reviewCount: libroEnBD.review_count
+              },
+              reviews: reviewsResult.rows
+            };
+          } else {
+            // El libro NO está en la BD
+            return {
+              ...libro,
+              enBD: false,
+              detalles: {
+                titulo: libro.titulo,
+                autor: libro.autor,
+                genero: libro.genero,
+                isbn: libro.isbn,
+                anio: libro.anio
+              }
+            };
+          }
+        } catch (error) {
+          console.error('❌ Error consultando libro:', error);
+          return {
+            ...libro,
+            enBD: false,
+            error: true
+          };
+        }
+      })
+    );
+
+    console.log("📚 Resultados finales:", librosConInfo);
+
+    res.json({
+      success: true,
+      recomendaciones: librosConInfo
+    });
+
+  } catch (error) {
+    console.error('❌ Error en recomendación:', error);
+    res.status(500).json({ 
+      error: 'Error generando recomendaciones',
+      details: error.message 
+    });
+  }
+});
 
 export default router;

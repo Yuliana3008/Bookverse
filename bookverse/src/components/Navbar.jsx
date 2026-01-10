@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom'; 
-import { BookOpen, Users, LogIn, Edit3, BookA, Search, Grid, Home, Info, UserPlus } from 'lucide-react';
+import { BookOpen, Users, LogIn, Edit3, BookA, Search, Grid, Home, Info, UserPlus, Wand2 } from 'lucide-react';
 
-// --- Componente NavItem (Colores actualizados, misma lógica) ---
+// --- Componente NavItem Unificado ---
 const NavItem = ({ item, onClick, isCurrentPage }) => {
     const isAnchorLink = item.to.includes('/#');
-    const commonClasses = "text-stone-600 font-medium hover:text-amber-700 transition duration-150 flex items-center";
+    // Clases consistentes para todos los links del centro
+    const commonClasses = "text-stone-600 font-medium hover:text-amber-700 transition duration-150 flex items-center group";
+    const iconClasses = "w-4 h-4 mr-1.5 text-amber-600 group-hover:text-amber-700 transition-colors";
     
     if (isAnchorLink && isCurrentPage) {
         return (
@@ -14,7 +16,7 @@ const NavItem = ({ item, onClick, isCurrentPage }) => {
                 onClick={onClick}
                 className={commonClasses}
             >
-                <item.icon className="w-4 h-4 mr-1 text-amber-600" />
+                <item.icon className={iconClasses} />
                 {item.name}
             </a>
         );
@@ -26,15 +28,13 @@ const NavItem = ({ item, onClick, isCurrentPage }) => {
             onClick={onClick}
             className={commonClasses}
         >
-            <item.icon className="w-4 h-4 mr-1 text-amber-600" />
+            <item.icon className={iconClasses} />
             {item.name}
         </Link>
     );
 };
 
-// --- Componente Navbar (Añadida prop userId) ---
 const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) => {
-    
     const location = useLocation(); 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -49,11 +49,13 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [dropdownRef]);
 
+    // Agregamos "Libro Ideal" directamente a la lista de items si está autenticado
     const navItems = isAuthenticated
         ? [
             { name: 'Reseñas Recientes', to: '/reseñas-recientes', icon: BookA },
             { name: 'Añadir Reseña', to: '/add-review', icon: Edit3 }, 
-            { name: 'Buscar Libros', to: '/buscar', icon: Search }
+            { name: 'Buscar Libros', to: '/buscar', icon: Search },
+            { name: 'Libro Ideal', to: '/encuentra-tu-libro', icon: Wand2 } // Ahora es igual a los demás
           ]
         : [
             { name: 'Inicio', to: '/', icon: Home }, 
@@ -67,12 +69,14 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
         <header className="sticky top-0 z-40 bg-[#fdfcf8] bg-opacity-95 backdrop-blur-sm shadow-sm border-b border-stone-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                 
+                {/* Logo */}
                 <Link to="/" className="flex items-center space-x-2 transition duration-200 hover:opacity-80">
                     <BookOpen className="w-8 h-8 text-amber-700" />
                     <span className="text-3xl font-extrabold text-stone-800 tracking-tight font-serif">BookVerse</span>
                 </Link>
                 
-                <nav className="hidden md:flex space-x-8">
+                {/* Navegación Central */}
+                <nav className="hidden md:flex space-x-8 items-center">
                     {navItems.map((item) => (
                         <NavItem
                             key={item.name}
@@ -83,15 +87,16 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                     ))}
                 </nav>
                 
-                <div className="flex items-center space-x-3">
+                {/* Acciones Derecha */}
+                <div className="flex items-center space-x-4">
                     {isAuthenticated ? (
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="flex items-center p-2 rounded-full transition duration-150 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                className="flex items-center px-3 py-2 rounded-lg transition duration-150 hover:bg-stone-100 focus:outline-none"
                             >
                                 <Users className="w-5 h-5 text-amber-700 mr-2" />
-                                <span className="text-sm font-medium text-stone-800 font-serif">Hola, {userName}</span>
+                                <span className="text-sm font-semibold text-stone-800 font-serif">Hola, {userName}</span>
                             </button>
 
                             {isDropdownOpen && (
@@ -103,8 +108,6 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                                     >
                                         <Grid className="w-4 h-4 mr-2" /> Mis Reseñas
                                     </Link>
-                                    
-                                    {/* CAMBIO AQUÍ: Ahora navega a la página de edición de perfil */}
                                     <Link
                                         to="/editar-perfil"
                                         onClick={() => setIsDropdownOpen(false)}
@@ -112,9 +115,7 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                                     >
                                         <UserPlus className="w-4 h-4 mr-2" /> Editar Perfil
                                     </Link>
-                                    
                                     <hr className="border-stone-100" />
-                                    
                                     <button
                                         onClick={handleLogout}
                                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center transition"
@@ -125,21 +126,20 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                             )}
                         </div>
                     ) : (
-                        <>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={() => openModal('login')}
+                                className="text-stone-600 font-medium py-2 px-4 hover:text-amber-700 transition duration-200 font-serif"
+                            >
+                                Iniciar Sesión
+                            </button>
                             <button
                                 onClick={() => openModal('register')}
-                                className="hidden sm:inline bg-amber-700 text-white font-bold py-2 px-4 rounded-full shadow-md hover:bg-amber-800 transition duration-200 transform hover:scale-105"
+                                className="bg-amber-700 text-white font-bold py-2 px-5 rounded-full shadow-sm hover:bg-amber-800 transition duration-200 transform hover:scale-105 text-sm"
                             >
                                 Crear Cuenta
                             </button>
-                            <button
-                                onClick={() => openModal('login')}
-                                className="text-amber-700 font-medium py-2 px-4 rounded-full border border-amber-700 hover:bg-amber-50 transition duration-200"
-                            >
-                                <LogIn className="w-5 h-5 inline mr-1 md:hidden" />
-                                <span className="hidden md:inline font-serif">Iniciar Sesión</span>
-                            </button>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>

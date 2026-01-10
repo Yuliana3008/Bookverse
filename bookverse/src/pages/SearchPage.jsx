@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom"; // CAMBIO: Agregado useSearchParams
 import { Search, Star, User, BookOpen, Filter, Calendar, Sparkles } from "lucide-react";
 import API_URL from '../config';
 
 const SearchPage = () => {
+  const [searchParams] = useSearchParams(); // NUEVO: Hook para leer parámetros de URL
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -31,11 +32,9 @@ const SearchPage = () => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  // --- FUNCIÓN DE BÚSQUEDA MODIFICADA ---
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     
-    // CAMBIO: Ahora permite buscar si hay texto O género O calificación
     if (!searchTerm.trim() && !filters.genre && !filters.rating) return;
 
     setIsSearching(true);
@@ -62,13 +61,25 @@ const SearchPage = () => {
     }
   };
 
-  // --- EFECTO MODIFICADO ---
+  // NUEVO: Efecto para leer el parámetro 'q' de la URL cuando carga la página
   useEffect(() => {
-    // Se dispara la búsqueda automática si hay CUALQUIER criterio activo
+    const qParam = searchParams.get('q');
+    if (qParam) {
+      setSearchTerm(qParam);
+      // Trigger búsqueda después de actualizar el estado
+      setTimeout(() => {
+        const fakeEvent = { preventDefault: () => {} };
+        handleSearch(fakeEvent);
+      }, 100);
+    }
+  }, [searchParams]); // Se ejecuta cuando cambia la URL
+
+  // Efecto para búsqueda automática cuando cambian los filtros
+  useEffect(() => {
     if (searchTerm.trim() || filters.genre || filters.rating) {
       handleSearch();
     }
-  }, [filters]); // Reacciona a cualquier cambio en el objeto de filtros
+  }, [filters]);
 
   return (
     <section className="py-24 bg-[#e9e4d5] min-h-screen font-serif">
@@ -197,7 +208,7 @@ const SearchPage = () => {
           </div>
         )}
         
-        {/* Mensaje si no hay resultados corregido */}
+        {/* Mensaje si no hay resultados */}
         {!isSearching && (searchTerm || filters.genre || filters.rating) && searchResults.length === 0 && (
           <div className="text-center py-20 border-2 border-dashed border-stone-300">
              <p className="text-stone-500 italic text-xl">"No se han hallado crónicas con esos criterios en el archivo..."</p>
