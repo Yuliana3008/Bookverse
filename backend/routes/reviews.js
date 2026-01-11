@@ -118,15 +118,13 @@ function detectGenreLocal(text) {
 }
 
 /* =========================================================
-    3. RUTAS DE BÚSQUEDA Y FILTRADO (LA CLAVE)
+    3. RUTAS DE BÚSQUEDA Y FILTRADO
 ========================================================= */
 
-// BÚSQUEDA AVANZADA (Para SearchPage.jsx)
 router.get("/search", async (req, res) => {
   try {
     const { q, genre, rating, sort } = req.query;
     
-    // Importante: u.name AS name para que el frontend lo reconozca
     let query = `
       SELECT r.*, u.name AS name 
       FROM reviews r 
@@ -135,25 +133,21 @@ router.get("/search", async (req, res) => {
     `;
     const values = [];
 
-    // Búsqueda por texto (Título, Autor o Reseña)
     if (q && q.trim() !== "") {
       values.push(`%${q}%`);
       query += ` AND (r.book_title ILIKE $${values.length} OR r.author ILIKE $${values.length} OR r.review_text ILIKE $${values.length})`;
     }
 
-    // Filtro por Género IA
     if (genre && genre !== "" && genre !== "Todas") {
       values.push(`%${genre}%`);
       query += ` AND r.categoria_ia ILIKE $${values.length}`;
     }
 
-    // Filtro por Calificación (Rating)
     if (rating && rating !== "") {
       values.push(parseInt(rating));
       query += ` AND r.rating = $${values.length}`;
     }
 
-    // Ordenamiento
     query += sort === "asc" ? " ORDER BY r.created_at ASC" : " ORDER BY r.created_at DESC";
 
     const result = await pool.query(query, values);
@@ -168,7 +162,6 @@ router.get("/search", async (req, res) => {
     4. RUTAS CRUD DE RESEÑAS
 ========================================================= */
 
-// OBTENER TODAS (O ÚLTIMAS 9)
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -182,7 +175,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// OBTENER RESEÑAS DE UN USUARIO ESPECÍFICO
 router.get("/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -200,7 +192,6 @@ router.get("/user/:userId", async (req, res) => {
   }
 });
 
-// OBTENER UNA SOLA POR ID
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
@@ -214,7 +205,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// CREAR NUEVA RESEÑA
 router.post("/", upload.single("image"), async (req, res) => {
   const { usuarios_id, book_title, book_id, rating, review_text, author } = req.body;
   const image_url = req.file ? req.file.path : null;
@@ -238,7 +228,6 @@ router.post("/", upload.single("image"), async (req, res) => {
   }
 });
 
-// EDITAR RESEÑA
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -258,7 +247,6 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ELIMINAR RESEÑA COMPLETA
 router.delete("/full/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -330,9 +318,9 @@ router.delete("/comments/:commentId", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 /* =========================================================
     6. RUTA DE RECOMENDACIONES CON IA
-    Agregar ANTES de: export default router;
 ========================================================= */
 
 router.post("/recommend", async (req, res) => {
@@ -345,7 +333,6 @@ router.post("/recommend", async (req, res) => {
 
     console.log("🔍 Buscando recomendaciones para:", userDescription);
 
-    // 1. Obtener recomendaciones de Groq
     const prompt = `Eres un experto en literatura. Un usuario busca un libro con estas características:
 
 "${userDescription}"
@@ -359,7 +346,7 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
       "autor": "Nombre del autor",
       "isbn": "ISBN si lo conoces, sino null",
       "genero": "Género literario",
-      "anio": año de publicación,
+      "anio": 2024,
       "razon": "Breve explicación de por qué este libro coincide (máximo 100 palabras)"
     }
   ]
@@ -391,11 +378,9 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
       return res.status(500).json({ error: 'Error procesando la respuesta de la IA' });
     }
 
-    // 2. Verificar si los libros están en la BD
     const librosConInfo = await Promise.all(
       recomendaciones.libros.map(async (libro) => {
         try {
-          // Buscar por título en la tabla reviews
           const result = await pool.query(
             `SELECT DISTINCT ON (book_title) 
               r.id, 
@@ -412,10 +397,7 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
           );
 
           if (result.rows.length > 0) {
-            // El libro existe en la BD
             const libroEnBD = result.rows[0];
-            
-            // Obtener las reseñas del libro
             const reviewsResult = await pool.query(
               `SELECT r.*, u.name AS user_name 
                FROM reviews r 
@@ -440,7 +422,6 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
               reviews: reviewsResult.rows
             };
           } else {
-            // El libro NO está en la BD
             return {
               ...libro,
               enBD: false,
@@ -455,16 +436,10 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
           }
         } catch (error) {
           console.error('❌ Error consultando libro:', error);
-          return {
-            ...libro,
-            enBD: false,
-            error: true
-          };
+          return { ...libro, enBD: false, error: true };
         }
       })
     );
-
-    console.log("📚 Resultados finales:", librosConInfo);
 
     res.json({
       success: true,
@@ -477,6 +452,72 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
       error: 'Error generando recomendaciones',
       details: error.message 
     });
+  }
+});
+
+/* =========================================================
+    7. RUTAS DE FAVORITOS
+========================================================= */
+
+// Verificar si una reseña es favorita
+router.get("/favorites/check/:userId/:reviewId", async (req, res) => {
+  try {
+    const { userId, reviewId } = req.params;
+    const result = await pool.query(
+      "SELECT 1 FROM favoritos WHERE usuarios_id = $1 AND review_id = $2",
+      [userId, reviewId]
+    );
+    res.json({ isFavorite: result.rowCount > 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Alternar favorito (Toggle)
+router.post("/favorites/toggle", async (req, res) => {
+  try {
+    const { usuarios_id, review_id } = req.body;
+    
+    // Verificar si ya existe en la tabla favoritos
+    const exists = await pool.query(
+      "SELECT id FROM favoritos WHERE usuarios_id = $1 AND review_id = $2",
+      [usuarios_id, review_id]
+    );
+
+    if (exists.rowCount > 0) {
+      // Si existe, lo borramos
+      await pool.query(
+        "DELETE FROM favoritos WHERE usuarios_id = $1 AND review_id = $2",
+        [usuarios_id, review_id]
+      );
+      res.json({ message: "Eliminado de favoritos", isFavorite: false });
+    } else {
+      // Si no existe, lo insertamos
+      await pool.query(
+        "INSERT INTO favoritos (usuarios_id, review_id) VALUES ($1, $2)",
+        [usuarios_id, review_id]
+      );
+      res.json({ message: "Añadido a favoritos", isFavorite: true });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtener todas las reseñas favoritas de un usuario específico
+router.get("/favorites/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(
+      `SELECT r.* FROM reviews r
+       JOIN favoritos f ON r.id = f.review_id
+       WHERE f.usuarios_id = $1
+       ORDER BY f.created_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

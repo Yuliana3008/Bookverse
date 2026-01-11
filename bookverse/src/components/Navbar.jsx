@@ -1,11 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom'; 
-import { BookOpen, Users, LogIn, Edit3, BookA, Search, Grid, Home, Info, UserPlus, Wand2 } from 'lucide-react';
+import { 
+    BookOpen, 
+    Users, 
+    LogIn, 
+    Edit3, 
+    BookA, 
+    Search, 
+    Grid, 
+    Home, 
+    Info, 
+    UserPlus, 
+    Wand2, 
+    Heart 
+} from 'lucide-react';
 
 // --- Componente NavItem Unificado ---
 const NavItem = ({ item, onClick, isCurrentPage }) => {
     const isAnchorLink = item.to.includes('/#');
-    // Clases consistentes para todos los links del centro
     const commonClasses = "text-stone-600 font-medium hover:text-amber-700 transition duration-150 flex items-center group";
     const iconClasses = "w-4 h-4 mr-1.5 text-amber-600 group-hover:text-amber-700 transition-colors";
     
@@ -49,13 +61,12 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [dropdownRef]);
 
-    // Agregamos "Libro Ideal" directamente a la lista de items si está autenticado
     const navItems = isAuthenticated
         ? [
             { name: 'Reseñas Recientes', to: '/reseñas-recientes', icon: BookA },
             { name: 'Añadir Reseña', to: '/add-review', icon: Edit3 }, 
             { name: 'Buscar Libros', to: '/buscar', icon: Search },
-            { name: 'Libro Ideal', to: '/encuentra-tu-libro', icon: Wand2 } // Ahora es igual a los demás
+            { name: 'Libro Ideal', to: '/encuentra-tu-libro', icon: Wand2 }
           ]
         : [
             { name: 'Inicio', to: '/', icon: Home }, 
@@ -108,6 +119,16 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                                     >
                                         <Grid className="w-4 h-4 mr-2" /> Mis Reseñas
                                     </Link>
+
+                                    {/* NUEVA OPCIÓN: MIS FAVORITOS */}
+                                    <Link 
+                                        to="/mis-favoritos"
+                                        onClick={() => setIsDropdownOpen(false)}
+                                        className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-amber-50 hover:text-amber-800 flex items-center transition"
+                                    >
+                                        <Heart className="w-4 h-4 mr-2 text-rose-500" /> Mis Favoritos
+                                    </Link>
+
                                     <Link
                                         to="/editar-perfil"
                                         onClick={() => setIsDropdownOpen(false)}
@@ -115,7 +136,9 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                                     >
                                         <UserPlus className="w-4 h-4 mr-2" /> Editar Perfil
                                     </Link>
+                                    
                                     <hr className="border-stone-100" />
+                                    
                                     <button
                                         onClick={handleLogout}
                                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center transition"

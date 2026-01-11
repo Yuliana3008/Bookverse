@@ -168,6 +168,7 @@ const ReviewDetailPage = () => {
   const navigate = useNavigate();
   const [review, setReview] = useState(null);
   const [revealed, setRevealed] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   
   // Estados para editar la reseña principal
   const [isEditingReview, setIsEditingReview] = useState(false);
@@ -188,8 +189,50 @@ const ReviewDetailPage = () => {
         console.error("❌ Error:", error);
       }
     };
+
+    const checkFavoriteStatus = async () => {
+      if (!storedUser || !id) return;
+      try {
+        // CORRECCIÓN RUTA: /api/reviews/favorites/...
+        const response = await fetch(`${API_URL}/api/reviews/favorites/check/${storedUser.id}/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsFavorite(data.isFavorite);
+        }
+      } catch (error) {
+        console.error("❌ Error verificando favorito:", error);
+      }
+    };
+
     fetchReview();
-  }, [id]);
+    checkFavoriteStatus();
+  }, [id, storedUser?.id]);
+
+  const toggleFavorite = async () => {
+    if (!storedUser) {
+      alert("Debes iniciar sesión para guardar favoritos.");
+      return;
+    }
+
+    try {
+      // CORRECCIÓN RUTA: /api/reviews/favorites/...
+      const response = await fetch(`${API_URL}/api/reviews/favorites/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          usuarios_id: storedUser.id, 
+          review_id: id 
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsFavorite(data.isFavorite);
+      }
+    } catch (error) {
+      console.error("❌ Error al actualizar favorito:", error);
+    }
+  };
 
   const handleDeleteFullReview = async () => {
     if (!window.confirm("¿Estás seguro de eliminar esta crónica? Se perderán todos los comentarios.")) return;
@@ -249,7 +292,21 @@ const ReviewDetailPage = () => {
             {!isEditingReview ? (
               <>
                 <div className="flex justify-between items-start mb-2">
-                  <h1 className="text-5xl font-serif font-black text-stone-900 leading-tight">{review.book_title}</h1>
+                  <div className="flex flex-col gap-3">
+                    <h1 className="text-5xl font-serif font-black text-stone-900 leading-tight">{review.book_title}</h1>
+                    
+                    {/* BOTÓN DE FAVORITOS */}
+                    <button 
+                      onClick={toggleFavorite}
+                      className="flex items-center gap-2 w-fit px-3 py-1 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
+                    >
+                      <Star className={`w-4 h-4 transition-all ${isFavorite ? "text-amber-500 fill-amber-500 scale-110" : "text-stone-400 group-hover:text-amber-600"}`} />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-600">
+                        {isFavorite ? "En tu archivo favorito" : "Añadir a favoritos"}
+                      </span>
+                    </button>
+                  </div>
+
                   <div className="bg-amber-900 text-white px-4 py-2 flex items-center shadow-lg">
                     <Star className="w-5 h-5 mr-2 text-amber-400 fill-amber-400" />
                     <span className="text-xl font-bold">{review.rating}</span>

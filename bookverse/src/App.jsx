@@ -44,6 +44,7 @@ import EditProfilePage from "./pages/EditProfilePage.jsx";
 // Importamos el componente que maneja el scroll
 import ScrollToTop from "./components/ScrollToTop";
 import FindBookPage from './pages/FindBookPage';
+import MyFavoritesPage from "./pages/MyFavoritesPage.jsx";
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
             <Route path="mis-resenas/:userId" element={<MyReviewsPage />} />
             <Route path="editar-perfil" element={<EditProfilePage />} />
             <Route path="/encuentra-tu-libro" element={<FindBookPage />} />
+            <Route path="mis-favoritos" element={<MyFavoritesPage />} />
         </Route>
       </Routes>
     </>
