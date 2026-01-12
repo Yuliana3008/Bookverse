@@ -21,7 +21,7 @@ import {
     CheckCheck
 } from 'lucide-react';
 
-const SOCKET_URL = import.meta.env.VITE_BACKEND_URL;
+const SOCKET_URL = import.meta.env.VITE_API_URL;
 
 // --- Componente NavItem Unificado ---
 const NavItem = ({ item, onClick, isCurrentPage }) => {
