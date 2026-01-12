@@ -261,7 +261,7 @@ router.delete("/full/:id", async (req, res) => {
 });
 
 /* =========================================================
-    5. RUTAS DE COMENTARIOS
+    5. RUTAS DE COMENTARIOS CON NOTIFICACIONES
 ========================================================= */
 
 router.get("/:id/comments", async (req, res) => {
@@ -288,21 +288,49 @@ router.post("/:id/comments", async (req, res) => {
 
     if (!text || !usuarios_id) return res.status(400).json({ error: "Faltan datos" });
 
+    // Insertar comentario
     const insertResult = await pool.query(
       `INSERT INTO comments (review_id, comment_text, usuarios_id, created_at)
        VALUES ($1, $2, $3, NOW()) RETURNING id`,
       [id, text, usuarios_id]
     );
     
+    // Obtener datos finales incluyendo dueño de la reseña para notificar
     const finalResult = await pool.query(
-      `SELECT c.id, c.comment_text AS text, c.created_at, c.usuarios_id, u.name AS user_name 
+      `SELECT c.id, c.comment_text AS text, c.created_at, c.usuarios_id, u.name AS user_name, r.usuarios_id AS owner_id, r.book_title 
        FROM comments c 
        JOIN usuarios u ON c.usuarios_id = u.id 
+       JOIN reviews r ON c.review_id = r.id
        WHERE c.id = $1`,
       [insertResult.rows[0].id]
     );
 
-    res.status(201).json(finalResult.rows[0]);
+    const data = finalResult.rows[0];
+
+    // --- LÓGICA DE NOTIFICACIÓN ---
+    if (data.owner_id !== usuarios_id) {
+        // 1. Guardar en Base de Datos
+        await pool.query(
+            "INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id) VALUES ($1, $2, 'comentario', $3)",
+            [data.owner_id, usuarios_id, id]
+        );
+
+        // 2. Disparar evento de Socket en tiempo real
+        const io = req.app.get("io");
+        if (io) {
+            io.to(`user_${data.owner_id}`).emit("nueva_notificacion", {
+                id: Math.random(),
+                tipo: 'comentario',
+                emisor_nombre: data.user_name,
+                book_title: data.book_title,
+                review_id: id,
+                leido: false,
+                created_at: new Date()
+            });
+        }
+    }
+
+    res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -456,7 +484,7 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
 });
 
 /* =========================================================
-    7. RUTAS DE FAVORITOS
+    7. RUTAS DE FAVORITOS CON NOTIFICACIONES
 ========================================================= */
 
 // Verificar si una reseña es favorita
@@ -473,7 +501,7 @@ router.get("/favorites/check/:userId/:reviewId", async (req, res) => {
   }
 });
 
-// Alternar favorito (Toggle)
+// Alternar favorito (Toggle) y notificar
 router.post("/favorites/toggle", async (req, res) => {
   try {
     const { usuarios_id, review_id } = req.body;
@@ -485,18 +513,48 @@ router.post("/favorites/toggle", async (req, res) => {
     );
 
     if (exists.rowCount > 0) {
-      // Si existe, lo borramos
+      // Borramos de favoritos
       await pool.query(
         "DELETE FROM favoritos WHERE usuarios_id = $1 AND review_id = $2",
         [usuarios_id, review_id]
       );
       res.json({ message: "Eliminado de favoritos", isFavorite: false });
     } else {
-      // Si no existe, lo insertamos
+      // Insertamos en favoritos
       await pool.query(
         "INSERT INTO favoritos (usuarios_id, review_id) VALUES ($1, $2)",
         [usuarios_id, review_id]
       );
+
+      // --- LÓGICA DE NOTIFICACIÓN ---
+      const reviewData = await pool.query(
+          "SELECT r.usuarios_id AS owner_id, r.book_title, u.name AS emisor_nombre FROM reviews r JOIN usuarios u ON u.id = $1 WHERE r.id = $2",
+          [usuarios_id, review_id]
+      );
+      
+      const { owner_id, book_title, emisor_nombre } = reviewData.rows[0];
+
+      if (owner_id !== usuarios_id) {
+          // 1. Guardar en Base de Datos
+          await pool.query(
+              "INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id) VALUES ($1, $2, 'favorito', $3)",
+              [owner_id, usuarios_id, review_id]
+          );
+
+          // 2. Disparar Socket
+          const io = req.app.get("io");
+          if (io) {
+              io.to(`user_${owner_id}`).emit("nueva_notificacion", {
+                  id: Math.random(),
+                  tipo: 'favorito',
+                  emisor_nombre: emisor_nombre,
+                  book_title: book_title,
+                  leido: false,
+                  created_at: new Date()
+              });
+          }
+      }
+
       res.json({ message: "Añadido a favoritos", isFavorite: true });
     }
   } catch (error) {
@@ -516,6 +574,43 @@ router.get("/favorites/user/:userId", async (req, res) => {
       [userId]
     );
     res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/* =========================================================
+    8. RUTAS DE HISTORIAL DE NOTIFICACIONES
+========================================================= */
+
+// Obtener historial de notificaciones del usuario para el Navbar
+router.get("/notifications/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(
+      `SELECT n.*, u.name as emisor_nombre, r.book_title 
+       FROM notificaciones n
+       JOIN usuarios u ON n.emisor_id = u.id
+       JOIN reviews r ON n.review_id = r.id
+       WHERE n.usuario_id = $1 
+       ORDER BY n.created_at DESC LIMIT 15`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Marcar todas como leídas
+router.put("/notifications/read-all/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await pool.query(
+      "UPDATE notificaciones SET leido = TRUE WHERE usuario_id = $1",
+      [userId]
+    );
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
