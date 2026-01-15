@@ -1,19 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Star, ArrowLeft, User, Calendar, Sparkles, Ghost, Heart, Search, Sword, Rocket, Eye, MessageSquare, Send, Edit2, Trash2, X, Check } from "lucide-react";
-import API_URL from '../config';
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
+import {
+  Star,
+  ArrowLeft,
+  User,
+  Calendar,
+  Sparkles,
+  Ghost,
+  Heart,
+  Search,
+  Sword,
+  Rocket,
+  Eye,
+  MessageSquare,
+  Send,
+  Edit2,
+  Trash2,
+} from "lucide-react";
+import API_URL from "../config";
 
-// --- COMPONENTE DE SECCIÓN DE COMENTARIOS ---
-const CommentsSection = ({ reviewId }) => {
+/* =========================================================
+   ✅ COMPONENTE: COMENTARIOS (AHORA USA AUTH DEL LAYOUT)
+   - GET comentarios: público (sin auth)
+   - POST comentario: privado (auth cookie) ✅ credentials: include
+   - DELETE comentario: privado (auth cookie) ✅ credentials: include
+========================================================= */
+const CommentsSection = ({ reviewId, authUser, openModal }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [editingId, setEditingId] = useState(null);
-  const [editText, setEditText] = useState("");
-
-  const storedData = localStorage.getItem("authUser");
-  const storedUser = storedData ? JSON.parse(storedData) : null;
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -32,11 +47,12 @@ const CommentsSection = ({ reviewId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const currentUserId = storedUser?.id; 
+    if (!newComment.trim()) return;
 
-    if (!newComment.trim() || !currentUserId) {
-      alert("Debes iniciar sesión para comentar.");
-      setIsSubmitting(false);
+    if (!authUser) {
+      // ✅ mejor UX: abre modal login si existe
+      if (typeof openModal === "function") openModal("login");
+      else alert("Debes iniciar sesión para comentar.");
       return;
     }
 
@@ -45,60 +61,45 @@ const CommentsSection = ({ reviewId }) => {
       const response = await fetch(`${API_URL}/api/reviews/${reviewId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          text: newComment,
-          usuarios_id: currentUserId 
-        }),
+        credentials: "include",
+        body: JSON.stringify({ text: newComment }),
       });
 
-      if (response.ok) {
-        const savedComment = await response.json();
-        const commentWithUserName = {
-          ...savedComment,
-          user_name: savedComment.user_name || storedUser.name
-        };
-        setComments([commentWithUserName, ...comments]);
-        setNewComment("");
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || "Error al publicar comentario");
       }
+
+      setComments([result, ...comments]);
+      setNewComment("");
     } catch (error) {
       console.error("❌ Error al publicar comentario:", error);
+      alert(error.message || "Error al comentar");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (commentId) => {
-    if (!window.confirm("¿Deseas borrar este eco del archivo para siempre?")) return;
+    if (!window.confirm("¿Deseas borrar este comentario?")) return;
+
     try {
       const response = await fetch(`${API_URL}/api/reviews/comments/${commentId}`, {
         method: "DELETE",
+        credentials: "include",
       });
-      if (response.ok) {
-        setComments(comments.filter(c => c.id !== commentId));
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || "No se pudo eliminar");
       }
+
+      setComments(comments.filter((c) => c.id !== commentId));
     } catch (error) {
       console.error("❌ Error al eliminar:", error);
-    }
-  };
-
-  const handleUpdate = async (commentId) => {
-    if (!editText.trim()) return;
-    try {
-      const response = await fetch(`${API_URL}/api/reviews/comments/${commentId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: editText }),
-      });
-      if (response.ok) {
-        const updatedComment = await response.json();
-        setComments(comments.map(c => 
-          c.id === commentId ? { ...c, text: updatedComment.text } : c
-        ));
-        setEditingId(null);
-        setEditText("");
-      }
-    } catch (error) {
-      console.error("❌ Error al editar:", error);
+      alert(error.message || "Error eliminando comentario");
     }
   };
 
@@ -106,10 +107,12 @@ const CommentsSection = ({ reviewId }) => {
     <section className="mt-12 bg-[#f4f1ea] border border-stone-400 p-8 shadow-inner mb-20">
       <div className="flex items-center gap-3 mb-8 border-b border-stone-300 pb-4">
         <MessageSquare className="w-6 h-6 text-amber-900" />
-        <h3 className="font-serif text-2xl font-black text-stone-900 italic">Conversaciones del Archivo</h3>
+        <h3 className="font-serif text-2xl font-black text-stone-900 italic">
+          Conversaciones del Archivo
+        </h3>
       </div>
 
-      {storedUser ? (
+      {authUser ? (
         <form onSubmit={handleSubmit} className="mb-12">
           <div className="relative group">
             <textarea
@@ -120,13 +123,19 @@ const CommentsSection = ({ reviewId }) => {
               onChange={(e) => setNewComment(e.target.value)}
               required
             />
-            <button type="submit" disabled={isSubmitting || !newComment.trim()} className="absolute right-3 bottom-3 p-2 bg-stone-900 text-amber-50 hover:bg-amber-900 shadow-md transition-all">
+            <button
+              type="submit"
+              disabled={isSubmitting || !newComment.trim()}
+              className="absolute right-3 bottom-3 p-2 bg-stone-900 text-amber-50 hover:bg-amber-900 shadow-md transition-all disabled:opacity-50"
+            >
               <Send className="w-4 h-4" />
             </button>
           </div>
         </form>
       ) : (
-        <div className="mb-12 p-6 border-2 border-dashed border-stone-300 text-center font-serif italic text-stone-500">Inicia sesión para participar en el Archivo.</div>
+        <div className="mb-12 p-6 border-2 border-dashed border-stone-300 text-center font-serif italic text-stone-500">
+          Inicia sesión para participar en el Archivo.
+        </div>
       )}
 
       <div className="space-y-8">
@@ -135,26 +144,27 @@ const CommentsSection = ({ reviewId }) => {
             <div className="flex justify-between items-start mb-1">
               <div className="flex items-center gap-3">
                 <span className="font-serif font-bold text-stone-900 text-sm">{c.user_name}</span>
-                <span className="text-[9px] uppercase tracking-widest text-stone-400 italic">{c.created_at ? new Date(c.created_at).toLocaleDateString() : "Reciente"}</span>
+                <span className="text-[9px] uppercase tracking-widest text-stone-400 italic">
+                  {c.created_at ? new Date(c.created_at).toLocaleDateString() : "Reciente"}
+                </span>
               </div>
-              {storedUser?.id === c.usuarios_id && editingId !== c.id && (
+
+              {/* ✅ solo el dueño ve el botón borrar */}
+              {authUser?.id === c.usuarios_id && (
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditingId(c.id); setEditText(c.text); }} className="p-1 text-stone-400 hover:text-amber-900"><Edit2 className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => handleDelete(c.id)} className="p-1 text-stone-400 hover:text-red-900"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button
+                    onClick={() => handleDelete(c.id)}
+                    className="p-1 text-stone-400 hover:text-red-900"
+                    title="Eliminar"
+                    type="button"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
             </div>
-            {editingId === c.id ? (
-              <div className="mt-2 space-y-2">
-                <textarea className="w-full bg-white border border-amber-800 p-2 font-serif italic" value={editText} onChange={(e) => setEditText(e.target.value)} rows="2" />
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setEditingId(null)} className="text-[10px] font-bold text-stone-500">CANCELAR</button>
-                  <button onClick={() => handleUpdate(c.id)} className="text-[10px] font-bold text-amber-900">GUARDAR</button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-stone-700 font-serif italic whitespace-pre-wrap">"{c.text}"</p>
-            )}
+
+            <p className="text-stone-700 font-serif italic whitespace-pre-wrap">"{c.text}"</p>
           </div>
         ))}
       </div>
@@ -162,20 +172,27 @@ const CommentsSection = ({ reviewId }) => {
   );
 };
 
-// --- COMPONENTE PRINCIPAL ---
+/* =========================================================
+   ✅ PÁGINA DETALLE RESEÑA (AHORA USA AUTH DEL LAYOUT)
+========================================================= */
 const ReviewDetailPage = () => {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
+
+  // ✅ Traemos la sesión real desde el Layout (cookie + /me)
+  const { authUser, openModal } = useOutletContext();
+
   const [review, setReview] = useState(null);
   const [revealed, setRevealed] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  
-  // Estados para editar la reseña principal
-  const [isEditingReview, setIsEditingReview] = useState(false);
-  const [editReviewFields, setEditReviewFields] = useState({ book_title: "", author: "", review_text: "", rating: 5 });
 
-  const storedData = localStorage.getItem("authUser");
-  const storedUser = storedData ? JSON.parse(storedData) : null;
+  const [isEditingReview, setIsEditingReview] = useState(false);
+  const [editReviewFields, setEditReviewFields] = useState({
+    book_title: "",
+    author: "",
+    review_text: "",
+    rating: 5,
+  });
 
   useEffect(() => {
     const fetchReview = async () => {
@@ -183,22 +200,37 @@ const ReviewDetailPage = () => {
         const response = await fetch(`${API_URL}/api/reviews/${id}`);
         if (!response.ok) throw new Error("Error al obtener la reseña");
         const data = await response.json();
+
         setReview(data);
-        setEditReviewFields({ book_title: data.book_title, author: data.author, review_text: data.review_text, rating: data.rating });
+        setEditReviewFields({
+          book_title: data.book_title,
+          author: data.author,
+          review_text: data.review_text,
+          rating: data.rating,
+        });
       } catch (error) {
         console.error("❌ Error:", error);
       }
     };
 
     const checkFavoriteStatus = async () => {
-      if (!storedUser || !id) return;
+      // ✅ solo checamos favoritos si hay sesión real
+      if (!authUser || !id) {
+        setIsFavorite(false);
+        return;
+      }
+
       try {
-        // CORRECCIÓN RUTA: /api/reviews/favorites/...
-        const response = await fetch(`${API_URL}/api/reviews/favorites/check/${storedUser.id}/${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setIsFavorite(data.isFavorite);
-        }
+        // ✅ Mantengo tu endpoint actual (con userId) para no tocar backend
+        const response = await fetch(
+          `${API_URL}/api/reviews/favorites/check/${authUser.id}/${id}`,
+          { credentials: "include" }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (response.ok) setIsFavorite(!!data.isFavorite);
+        else setIsFavorite(false);
       } catch (error) {
         console.error("❌ Error verificando favorito:", error);
       }
@@ -206,43 +238,65 @@ const ReviewDetailPage = () => {
 
     fetchReview();
     checkFavoriteStatus();
-  }, [id, storedUser?.id]);
+  }, [id, authUser?.id]);
 
   const toggleFavorite = async () => {
-    if (!storedUser) {
-      alert("Debes iniciar sesión para guardar favoritos.");
+    if (!authUser) {
+      // ✅ mejor UX: abre modal
+      if (typeof openModal === "function") openModal("login");
+      else alert("Debes iniciar sesión para guardar favoritos.");
       return;
     }
 
     try {
-      // CORRECCIÓN RUTA: /api/reviews/favorites/...
       const response = await fetch(`${API_URL}/api/reviews/favorites/toggle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          usuarios_id: storedUser.id, 
-          review_id: id 
+        credentials: "include",
+        body: JSON.stringify({
+          review_id: Number(id),
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setIsFavorite(data.isFavorite);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo actualizar favorito");
       }
+
+      setIsFavorite(!!data.isFavorite);
     } catch (error) {
       console.error("❌ Error al actualizar favorito:", error);
+      alert(error.message || "Error al actualizar favorito");
     }
   };
 
   const handleDeleteFullReview = async () => {
-    if (!window.confirm("¿Estás seguro de eliminar esta crónica? Se perderán todos los comentarios.")) return;
+    if (
+      !window.confirm(
+        "¿Estás seguro de eliminar esta crónica? Se perderán todos los comentarios."
+      )
+    )
+      return;
+
     try {
-      const response = await fetch(`${API_URL}/api/reviews/full/${id}`, { method: "DELETE" });
-      if (response.ok) {
-        alert("Crónica eliminada.");
-        navigate("/");
+      const response = await fetch(`${API_URL}/api/reviews/full/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo eliminar");
       }
-    } catch (error) { console.error(error); }
+
+      alert("Crónica eliminada.");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Error eliminando reseña");
+    }
   };
 
   const handleUpdateReview = async () => {
@@ -250,37 +304,85 @@ const ReviewDetailPage = () => {
       const response = await fetch(`${API_URL}/api/reviews/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(editReviewFields),
       });
-      if (response.ok) {
-        const updated = await response.json();
-        setReview({ ...review, ...updated });
-        setIsEditingReview(false);
+
+      const updated = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(updated.error || "No se pudo actualizar");
       }
-    } catch (error) { console.error(error); }
+
+      setReview({ ...review, ...updated });
+      setIsEditingReview(false);
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Error al actualizar reseña");
+    }
   };
 
   const getGenreDetails = (categoria) => {
-    if (!categoria || categoria === "Analizando") return { style: 'bg-stone-100 text-stone-500 border-stone-200', icon: <Sparkles className="w-4 h-4" /> };
+    if (!categoria || categoria === "Analizando") {
+      return {
+        style: "bg-stone-100 text-stone-500 border-stone-200",
+        icon: <Sparkles className="w-4 h-4" />,
+      };
+    }
     const cat = categoria.toLowerCase().trim();
-    if (cat.includes('terror')) return { style: 'bg-red-100 text-red-800 border-red-200 shadow-sm', icon: <Ghost className="w-4 h-4" /> };
-    if (cat.includes('romance')) return { style: 'bg-rose-100 text-rose-800 border-rose-200 shadow-sm', icon: <Heart className="w-4 h-4" /> };
-    if (cat.includes('suspenso')) return { style: 'bg-slate-200 text-slate-800 border-slate-300 shadow-sm', icon: <Search className="w-4 h-4" /> };
-    if (cat.includes('fantasía') || cat.includes('fantasia')) return { style: 'bg-purple-100 text-purple-800 border-purple-200 shadow-sm', icon: <Sword className="w-4 h-4" /> };
-    if (cat.includes('ciencia ficción')) return { style: 'bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm', icon: <Rocket className="w-4 h-4" /> };
-    return { style: 'bg-stone-200 text-stone-700 border-stone-300', icon: <Sparkles className="w-4 h-4" /> };
+    if (cat.includes("terror"))
+      return {
+        style: "bg-red-100 text-red-800 border-red-200 shadow-sm",
+        icon: <Ghost className="w-4 h-4" />,
+      };
+    if (cat.includes("romance"))
+      return {
+        style: "bg-rose-100 text-rose-800 border-rose-200 shadow-sm",
+        icon: <Heart className="w-4 h-4" />,
+      };
+    if (cat.includes("suspenso"))
+      return {
+        style: "bg-slate-200 text-slate-800 border-slate-300 shadow-sm",
+        icon: <Search className="w-4 h-4" />,
+      };
+    if (cat.includes("fantasía") || cat.includes("fantasia"))
+      return {
+        style: "bg-purple-100 text-purple-800 border-purple-200 shadow-sm",
+        icon: <Sword className="w-4 h-4" />,
+      };
+    if (cat.includes("ciencia ficción"))
+      return {
+        style: "bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm",
+        icon: <Rocket className="w-4 h-4" />,
+      };
+    return {
+      style: "bg-stone-200 text-stone-700 border-stone-300",
+      icon: <Sparkles className="w-4 h-4" />,
+    };
   };
 
-  if (!review) return <div className="p-20 text-center font-serif text-amber-900 animate-pulse">Desenrollando el pergamino...</div>;
+  if (!review) {
+    return (
+      <div className="p-20 text-center font-serif text-amber-900 animate-pulse">
+        Desenrollando el pergamino...
+      </div>
+    );
+  }
 
-  const imageUrl = review.image_url?.startsWith('http') ? review.image_url : `${API_URL}${review.image_url}`;
+  const imageUrl = review.image_url?.startsWith("http")
+    ? review.image_url
+    : `${API_URL}${review.image_url}`;
   const { style, icon } = getGenreDetails(review.categoria_ia);
 
   return (
     <div className="min-h-screen bg-[#e9e4d5] py-20 px-4">
       <div className="max-w-3xl mx-auto">
-        <button onClick={() => navigate(-1)} className="flex items-center text-amber-900 mb-8 font-serif italic hover:underline group">
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Volver al catálogo
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-amber-900 mb-8 font-serif italic hover:underline group"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />{" "}
+          Volver al catálogo
         </button>
 
         <article className="bg-[#f4f1ea] border border-stone-400 shadow-2xl overflow-hidden relative">
@@ -293,14 +395,22 @@ const ReviewDetailPage = () => {
               <>
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex flex-col gap-3">
-                    <h1 className="text-5xl font-serif font-black text-stone-900 leading-tight">{review.book_title}</h1>
-                    
-                    {/* BOTÓN DE FAVORITOS */}
-                    <button 
+                    <h1 className="text-5xl font-serif font-black text-stone-900 leading-tight">
+                      {review.book_title}
+                    </h1>
+
+                    {/* ✅ BOTÓN FAVORITOS */}
+                    <button
                       onClick={toggleFavorite}
                       className="flex items-center gap-2 w-fit px-3 py-1 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
                     >
-                      <Star className={`w-4 h-4 transition-all ${isFavorite ? "text-amber-500 fill-amber-500 scale-110" : "text-stone-400 group-hover:text-amber-600"}`} />
+                      <Star
+                        className={`w-4 h-4 transition-all ${
+                          isFavorite
+                            ? "text-amber-500 fill-amber-500 scale-110"
+                            : "text-stone-400 group-hover:text-amber-600"
+                        }`}
+                      />
                       <span className="text-[9px] font-black uppercase tracking-widest text-stone-600">
                         {isFavorite ? "En tu archivo favorito" : "Añadir a favoritos"}
                       </span>
@@ -314,37 +424,73 @@ const ReviewDetailPage = () => {
                 </div>
 
                 <div className="mb-6 flex">
-                  <span className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest ${style}`}>
-                    {icon} Clasificación IA: {review.categoria_ia || 'Analizando'}
+                  <span
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest ${style}`}
+                  >
+                    {icon} Clasificación IA: {review.categoria_ia || "Analizando"}
                   </span>
                 </div>
 
-                <p className="text-amber-900 font-sans font-bold uppercase tracking-[0.2em] text-sm mb-8">De {review.author || "Obra Anónima"}</p>
+                <p className="text-amber-900 font-sans font-bold uppercase tracking-[0.2em] text-sm mb-8">
+                  De {review.author || "Obra Anónima"}
+                </p>
 
                 <div className="prose prose-stone max-w-none mb-12 relative">
                   {review.is_spoiler && !revealed ? (
                     <div className="relative">
-                      <p className="text-stone-800 text-xl leading-relaxed font-serif italic blur-md opacity-40">{review.review_text}</p>
+                      <p className="text-stone-800 text-xl leading-relaxed font-serif italic blur-md opacity-40">
+                        {review.review_text}
+                      </p>
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-200/30 p-6 text-center">
-                        <p className="text-amber-900 font-serif font-bold text-lg mb-4">⚠️ Advertencia: Spoiler.</p>
-                        <button onClick={() => setRevealed(true)} className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest">
+                        <p className="text-amber-900 font-serif font-bold text-lg mb-4">
+                          ⚠️ Advertencia: Spoiler.
+                        </p>
+                        <button
+                          onClick={() => setRevealed(true)}
+                          className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest"
+                        >
                           <Eye className="w-4 h-4 inline mr-2" /> Revelar
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-stone-800 text-xl leading-relaxed font-serif italic first-letter:text-5xl first-letter:text-amber-900">{review.review_text}</p>
+                    <p className="text-stone-800 text-xl leading-relaxed font-serif italic first-letter:text-5xl first-letter:text-amber-900">
+                      {review.review_text}
+                    </p>
                   )}
                 </div>
               </>
             ) : (
               <div className="space-y-6">
-                <input className="text-3xl font-serif w-full p-2 border border-stone-300" value={editReviewFields.book_title} onChange={(e) => setEditReviewFields({...editReviewFields, book_title: e.target.value})} />
-                <input className="w-full p-2 border border-stone-300" value={editReviewFields.author} onChange={(e) => setEditReviewFields({...editReviewFields, author: e.target.value})} />
-                <textarea className="w-full p-4 border border-stone-300 font-serif" rows="8" value={editReviewFields.review_text} onChange={(e) => setEditReviewFields({...editReviewFields, review_text: e.target.value})} />
+                <input
+                  className="text-3xl font-serif w-full p-2 border border-stone-300"
+                  value={editReviewFields.book_title}
+                  onChange={(e) =>
+                    setEditReviewFields({ ...editReviewFields, book_title: e.target.value })
+                  }
+                />
+                <input
+                  className="w-full p-2 border border-stone-300"
+                  value={editReviewFields.author}
+                  onChange={(e) =>
+                    setEditReviewFields({ ...editReviewFields, author: e.target.value })
+                  }
+                />
+                <textarea
+                  className="w-full p-4 border border-stone-300 font-serif"
+                  rows="8"
+                  value={editReviewFields.review_text}
+                  onChange={(e) =>
+                    setEditReviewFields({ ...editReviewFields, review_text: e.target.value })
+                  }
+                />
                 <div className="flex gap-4">
-                  <button onClick={handleUpdateReview} className="bg-amber-900 text-white px-6 py-2">GUARDAR CAMBIOS</button>
-                  <button onClick={() => setIsEditingReview(false)} className="text-stone-500">CANCELAR</button>
+                  <button onClick={handleUpdateReview} className="bg-amber-900 text-white px-6 py-2">
+                    GUARDAR CAMBIOS
+                  </button>
+                  <button onClick={() => setIsEditingReview(false)} className="text-stone-500">
+                    CANCELAR
+                  </button>
                 </div>
               </div>
             )}
@@ -352,22 +498,39 @@ const ReviewDetailPage = () => {
             <div className="mt-12 pt-8 border-t border-stone-300 flex flex-wrap gap-6 justify-between items-center text-stone-500 text-[10px] uppercase tracking-[0.2em]">
               <div className="flex items-center">
                 <User className="w-4 h-4 mr-2 text-amber-900" />
-                Escrito por <span className="text-stone-800 font-bold ml-1">{review.user_name}</span>
+                Escrito por{" "}
+                <span className="text-stone-800 font-bold ml-1">{review.user_name}</span>
               </div>
-              <div className="flex items-center"><Calendar className="w-4 h-4 mr-2 text-amber-900" /> {new Date(review.created_at).toLocaleDateString()}</div>
-              
-              {/* BOTONES DE GESTIÓN PARA EL AUTOR */}
-              {storedUser?.id === review.usuarios_id && !isEditingReview && (
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-2 text-amber-900" />{" "}
+                {review.created_at ? new Date(review.created_at).toLocaleDateString() : ""}
+              </div>
+
+              {/* ✅ solo el autor ve editar/eliminar */}
+              {authUser?.id === review.usuarios_id && !isEditingReview && (
                 <div className="flex gap-4 ml-auto">
-                  <button onClick={() => setIsEditingReview(true)} className="flex items-center gap-1 text-amber-900 hover:underline"><Edit2 className="w-3 h-3" /> Editar Crónica</button>
-                  <button onClick={handleDeleteFullReview} className="flex items-center gap-1 text-red-800 hover:underline"><Trash2 className="w-3 h-3" /> Eliminar</button>
+                  <button
+                    onClick={() => setIsEditingReview(true)}
+                    className="flex items-center gap-1 text-amber-900 hover:underline"
+                    type="button"
+                  >
+                    <Edit2 className="w-3 h-3" /> Editar Crónica
+                  </button>
+                  <button
+                    onClick={handleDeleteFullReview}
+                    className="flex items-center gap-1 text-red-800 hover:underline"
+                    type="button"
+                  >
+                    <Trash2 className="w-3 h-3" /> Eliminar
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </article>
 
-        <CommentsSection reviewId={id} />
+        {/* ✅ Pasamos la sesión real al componente de comentarios */}
+        <CommentsSection reviewId={id} authUser={authUser} openModal={openModal} />
       </div>
     </div>
   );
