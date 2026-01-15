@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Clock,
   CheckCheck,
+  BookText,
 } from "lucide-react";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL; // tu backend (Render)
@@ -155,9 +156,9 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2 transition duration-200 hover:opacity-80">
-          <BookOpen className="w-8 h-8 text-amber-700" />
+          <BookText className="w-8 h-8 text-amber-700" />
           <span className="text-3xl font-extrabold text-stone-800 tracking-tight font-serif">
-            BookVerse
+            Entre Páginas
           </span>
         </Link>
 

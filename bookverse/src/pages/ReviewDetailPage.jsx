@@ -160,7 +160,6 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
                 </span>
               </div>
 
-              {/* ✅ solo el dueño ve el botón borrar */}
               {authUser?.id === c.usuarios_id && (
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
@@ -224,14 +223,12 @@ const ReviewDetailPage = () => {
     };
 
     const checkFavoriteStatus = async () => {
-      // ✅ Solo si hay sesión
       if (!authUser || !id) {
         setIsFavorite(false);
         return;
       }
 
       try {
-        // ✅ Backend correcto: GET /favorites/check/:reviewId (usa req.user.id)
         const response = await fetch(`${API_URL}/api/reviews/favorites/check/${id}`, {
           credentials: "include",
           headers: {
@@ -425,7 +422,6 @@ const ReviewDetailPage = () => {
                       {review.book_title}
                     </h1>
 
-                    {/* ✅ BOTÓN FAVORITOS */}
                     <button
                       onClick={toggleFavorite}
                       className="flex items-center gap-2 w-fit px-3 py-1 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
@@ -537,12 +533,17 @@ const ReviewDetailPage = () => {
                 Escrito por{" "}
                 <span className="text-stone-800 font-bold ml-1">{review.user_name}</span>
               </div>
+
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-2 text-amber-900" />{" "}
                 {review.created_at ? new Date(review.created_at).toLocaleDateString() : ""}
               </div>
 
-              {/* ✅ solo el autor ve editar/eliminar */}
+              <div className="flex items-center">
+                <Eye className="w-4 h-4 mr-2 text-amber-900" />
+                {(review.views_count ?? 0).toLocaleString("es-MX")} vistas
+              </div>
+
               {authUser?.id === review.usuarios_id && !isEditingReview && (
                 <div className="flex gap-4 ml-auto">
                   <button

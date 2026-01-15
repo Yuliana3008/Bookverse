@@ -178,7 +178,7 @@ router.get("/", async (req, res) => {
       SELECT r.*, u.name AS name 
       FROM reviews r 
       JOIN usuarios u ON u.id = r.usuarios_id 
-      ORDER BY r.created_at DESC LIMIT 9;
+      ORDER BY r.created_at DESC;
     `);
     res.json(result.rows);
   } catch (error) {
@@ -261,17 +261,25 @@ router.get("/user/:userId", auth, async (req, res) => {
 });
 
 /* =========================================================
-    ⚠️ DETALLE DE RESEÑA (PÚBLICA)
+    ⚠️ DETALLE DE RESEÑA (PÚBLICA) + ✅ SUMA VISTAS
 ========================================================= */
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT r.*, u.name AS user_name 
-       FROM reviews r 
-       JOIN usuarios u ON u.id = r.usuarios_id 
-       WHERE r.id = $1`,
+      `
+      WITH updated AS (
+        UPDATE reviews
+        SET views_count = COALESCE(views_count, 0) + 1
+        WHERE id = $1
+        RETURNING *
+      )
+      SELECT updated.*, u.name AS user_name
+      FROM updated
+      JOIN usuarios u ON u.id = updated.usuarios_id;
+      `,
       [req.params.id]
     );
+
     if (result.rows.length === 0)
       return res.status(404).json({ error: "Reseña no hallada" });
 

@@ -79,7 +79,7 @@ const FindBookPage = () => {
           </h2>
           <div className="h-1 w-24 bg-amber-800 mx-auto mt-4"></div>
           <p className="text-stone-700 text-lg mt-6 italic max-w-2xl mx-auto">
-            Describe tus preferencias literarias y nuestra inteligencia artificial consultará el archivo para recomendarte obras magistrales
+            Describe tus preferencias literarias y nuestra inteligencia artificial consultará el archivo para recomendarte obras parecidas
           </p>
         </div>
 
@@ -158,11 +158,11 @@ const FindBookPage = () => {
           <div>
             <div className="text-center mb-10">
               <p className="text-amber-900 font-bold tracking-[0.3em] uppercase text-xs mb-2 font-sans">
-                Hallazgos del Archivo
+                Hallazgos de la búsqueda
               </p>
               <h3 className="text-3xl font-black text-stone-900 flex items-center justify-center">
                 <Sparkles className="w-7 h-7 mr-3 text-amber-800" />
-                Recomendaciones Curadas
+                Recomendaciones
               </h3>
               <div className="h-1 w-20 bg-amber-800 mx-auto mt-3"></div>
             </div>
@@ -291,9 +291,8 @@ const FindBookPage = () => {
                     <div className="flex gap-4 border-t-2 border-stone-200 pt-6">
                       {rec.enBD ? (
                         <button
-                          // MODIFICACIÓN: Llamamos a la función con el ID/ISBN
                           onClick={(e) => {
-                            e.stopPropagation(); // Evita el doble clic con la tarjeta
+                            e.stopPropagation();
                             handleViewReview(rec.detalles.isbn || rec.detalles.id);
                           }}
                           className="flex-1 bg-amber-900 text-[#f4f1ea] py-4 px-6 font-bold tracking-wider uppercase hover:bg-black transition-all duration-300 border-2 border-amber-950 flex items-center justify-center gap-2"
@@ -310,6 +309,16 @@ const FindBookPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* ✅ NUEVO: Mensaje debajo de las recomendaciones */}
+            <div className="mt-14 bg-[#f4f1ea] border-l-4 border-amber-900 p-6 shadow-md">
+              <p className="text-stone-800 text-lg italic leading-relaxed text-center">
+                 Si te gustó el libro recomendado, cuando lo termines de leer no olvides dejar tu reseña.
+              </p>
+              <p className="text-stone-600 text-sm italic mt-3 text-center">
+                Tu experiencia ayuda a otros lectores a descubrir nuevas historias 
+              </p>
             </div>
 
             {/* Search Again Button */}
