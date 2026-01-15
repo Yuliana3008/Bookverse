@@ -20,10 +20,22 @@ import {
 import API_URL from "../config";
 
 /* =========================================================
-   ✅ COMPONENTE: COMENTARIOS (AHORA USA AUTH DEL LAYOUT)
-   - GET comentarios: público (sin auth)
-   - POST comentario: privado (auth cookie) ✅ credentials: include
-   - DELETE comentario: privado (auth cookie) ✅ credentials: include
+   ✅ Helper: Auth headers (cookie + Bearer fallback)
+   - En mobile/tablet a veces NO se guarda cookie -> Bearer salva
+========================================================= */
+const getAuthHeaders = () => {
+  try {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+};
+
+/* =========================================================
+   ✅ COMPONENTE: COMENTARIOS
+   - GET comentarios: público
+   - POST/DELETE: privado (cookie) + fallback Bearer
 ========================================================= */
 const CommentsSection = ({ reviewId, authUser, openModal }) => {
   const [comments, setComments] = useState([]);
@@ -42,7 +54,7 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
         console.error("❌ Error cargando comentarios:", error);
       }
     };
-    fetchComments();
+    if (reviewId) fetchComments();
   }, [reviewId]);
 
   const handleSubmit = async (e) => {
@@ -50,7 +62,6 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
     if (!newComment.trim()) return;
 
     if (!authUser) {
-      // ✅ mejor UX: abre modal login si existe
       if (typeof openModal === "function") openModal("login");
       else alert("Debes iniciar sesión para comentar.");
       return;
@@ -60,16 +71,16 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
     try {
       const response = await fetch(`${API_URL}/api/reviews/${reviewId}/comments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         credentials: "include",
         body: JSON.stringify({ text: newComment }),
       });
 
       const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(result.error || "Error al publicar comentario");
-      }
+      if (!response.ok) throw new Error(result.error || "Error al publicar comentario");
 
       setComments([result, ...comments]);
       setNewComment("");
@@ -88,13 +99,13 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
       const response = await fetch(`${API_URL}/api/reviews/comments/${commentId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          ...getAuthHeaders(),
+        },
       });
 
       const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(result.error || "No se pudo eliminar");
-      }
+      if (!response.ok) throw new Error(result.error || "No se pudo eliminar");
 
       setComments(comments.filter((c) => c.id !== commentId));
     } catch (error) {
@@ -173,13 +184,12 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
 };
 
 /* =========================================================
-   ✅ PÁGINA DETALLE RESEÑA (AHORA USA AUTH DEL LAYOUT)
+   ✅ PÁGINA DETALLE RESEÑA
 ========================================================= */
 const ReviewDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // ✅ Traemos la sesión real desde el Layout (cookie + /me)
   const { authUser, openModal } = useOutletContext();
 
   const [review, setReview] = useState(null);
@@ -203,10 +213,10 @@ const ReviewDetailPage = () => {
 
         setReview(data);
         setEditReviewFields({
-          book_title: data.book_title,
-          author: data.author,
-          review_text: data.review_text,
-          rating: data.rating,
+          book_title: data.book_title || "",
+          author: data.author || "",
+          review_text: data.review_text || "",
+          rating: data.rating ?? 5,
         });
       } catch (error) {
         console.error("❌ Error:", error);
@@ -214,18 +224,20 @@ const ReviewDetailPage = () => {
     };
 
     const checkFavoriteStatus = async () => {
-      // ✅ solo checamos favoritos si hay sesión real
+      // ✅ Solo si hay sesión
       if (!authUser || !id) {
         setIsFavorite(false);
         return;
       }
 
       try {
-        // ✅ Mantengo tu endpoint actual (con userId) para no tocar backend
-        const response = await fetch(
-          `${API_URL}/api/reviews/favorites/check/${authUser.id}/${id}`,
-          { credentials: "include" }
-        );
+        // ✅ Backend correcto: GET /favorites/check/:reviewId (usa req.user.id)
+        const response = await fetch(`${API_URL}/api/reviews/favorites/check/${id}`, {
+          credentials: "include",
+          headers: {
+            ...getAuthHeaders(),
+          },
+        });
 
         const data = await response.json().catch(() => ({}));
 
@@ -236,13 +248,14 @@ const ReviewDetailPage = () => {
       }
     };
 
-    fetchReview();
-    checkFavoriteStatus();
+    if (id) {
+      fetchReview();
+      checkFavoriteStatus();
+    }
   }, [id, authUser?.id]);
 
   const toggleFavorite = async () => {
     if (!authUser) {
-      // ✅ mejor UX: abre modal
       if (typeof openModal === "function") openModal("login");
       else alert("Debes iniciar sesión para guardar favoritos.");
       return;
@@ -251,7 +264,10 @@ const ReviewDetailPage = () => {
     try {
       const response = await fetch(`${API_URL}/api/reviews/favorites/toggle`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         credentials: "include",
         body: JSON.stringify({
           review_id: Number(id),
@@ -259,10 +275,7 @@ const ReviewDetailPage = () => {
       });
 
       const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || "No se pudo actualizar favorito");
-      }
+      if (!response.ok) throw new Error(data.error || "No se pudo actualizar favorito");
 
       setIsFavorite(!!data.isFavorite);
     } catch (error) {
@@ -283,13 +296,13 @@ const ReviewDetailPage = () => {
       const response = await fetch(`${API_URL}/api/reviews/full/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          ...getAuthHeaders(),
+        },
       });
 
       const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || "No se pudo eliminar");
-      }
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
 
       alert("Crónica eliminada.");
       navigate("/");
@@ -303,16 +316,16 @@ const ReviewDetailPage = () => {
     try {
       const response = await fetch(`${API_URL}/api/reviews/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         credentials: "include",
         body: JSON.stringify(editReviewFields),
       });
 
       const updated = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(updated.error || "No se pudo actualizar");
-      }
+      if (!response.ok) throw new Error(updated.error || "No se pudo actualizar");
 
       setReview({ ...review, ...updated });
       setIsEditingReview(false);
@@ -371,7 +384,10 @@ const ReviewDetailPage = () => {
 
   const imageUrl = review.image_url?.startsWith("http")
     ? review.image_url
-    : `${API_URL}${review.image_url}`;
+    : review.image_url
+    ? `${API_URL}${review.image_url}`
+    : "";
+
   const { style, icon } = getGenreDetails(review.categoria_ia);
 
   return (
@@ -387,7 +403,17 @@ const ReviewDetailPage = () => {
 
         <article className="bg-[#f4f1ea] border border-stone-400 shadow-2xl overflow-hidden relative">
           <div className="w-full h-96 overflow-hidden border-b border-stone-400 bg-stone-200">
-            <img src={imageUrl} alt={review.book_title} className="w-full h-full object-cover" />
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={review.book_title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-stone-500 font-serif italic">
+                Sin imagen
+              </div>
+            )}
           </div>
 
           <div className="p-12">
@@ -403,6 +429,7 @@ const ReviewDetailPage = () => {
                     <button
                       onClick={toggleFavorite}
                       className="flex items-center gap-2 w-fit px-3 py-1 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
+                      type="button"
                     >
                       <Star
                         className={`w-4 h-4 transition-all ${
@@ -448,6 +475,7 @@ const ReviewDetailPage = () => {
                         <button
                           onClick={() => setRevealed(true)}
                           className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest"
+                          type="button"
                         >
                           <Eye className="w-4 h-4 inline mr-2" /> Revelar
                         </button>
@@ -485,10 +513,18 @@ const ReviewDetailPage = () => {
                   }
                 />
                 <div className="flex gap-4">
-                  <button onClick={handleUpdateReview} className="bg-amber-900 text-white px-6 py-2">
+                  <button
+                    onClick={handleUpdateReview}
+                    className="bg-amber-900 text-white px-6 py-2"
+                    type="button"
+                  >
                     GUARDAR CAMBIOS
                   </button>
-                  <button onClick={() => setIsEditingReview(false)} className="text-stone-500">
+                  <button
+                    onClick={() => setIsEditingReview(false)}
+                    className="text-stone-500"
+                    type="button"
+                  >
                     CANCELAR
                   </button>
                 </div>
@@ -529,7 +565,6 @@ const ReviewDetailPage = () => {
           </div>
         </article>
 
-        {/* ✅ Pasamos la sesión real al componente de comentarios */}
         <CommentsSection reviewId={id} authUser={authUser} openModal={openModal} />
       </div>
     </div>

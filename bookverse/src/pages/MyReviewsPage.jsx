@@ -1,7 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
-import { Star, User, BookOpen, Sparkles, Ghost, Heart, Search, Sword, Rocket, EyeOff } from "lucide-react";
+import {
+  Star,
+  User,
+  BookOpen,
+  Sparkles,
+  Ghost,
+  Heart,
+  Search,
+  Sword,
+  Rocket,
+  EyeOff,
+} from "lucide-react";
 import API_URL from "../config";
+
+/* ===================== AUTH HELPERS ===================== */
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const normalizeImageUrl = (image_url) => {
+  if (!image_url) return null;
+  if (image_url.startsWith("http")) return image_url;
+  return `${API_URL}${image_url}`;
+};
 
 /* ===================== CARD ===================== */
 const MyReviewCard = ({ review }) => {
@@ -26,6 +49,7 @@ const MyReviewCard = ({ review }) => {
         icon: <Sparkles className="w-3 h-3" />,
       };
     }
+
     const cat = categoria.toLowerCase().trim();
     const config = {
       terror: {
@@ -59,6 +83,7 @@ const MyReviewCard = ({ review }) => {
         icon: <Rocket className="w-3 h-3" />,
       },
     };
+
     return (
       config[cat] || {
         style: "bg-stone-200 text-stone-700 border-stone-300",
@@ -90,8 +115,7 @@ const MyReviewCard = ({ review }) => {
               className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100"
               onError={(e) => {
                 e.currentTarget.onerror = null;
-                e.currentTarget.src =
-                  "https://via.placeholder.com/300x400?text=Sin+Portada";
+                e.currentTarget.src = "https://via.placeholder.com/300x400?text=Sin+Portada";
               }}
             />
           ) : (
@@ -182,11 +206,15 @@ const MyReviewsPage = () => {
     const loadMyReviews = async () => {
       try {
         const res = await fetch(`${API_URL}/api/reviews/me`, {
+          method: "GET",
           credentials: "include",
+          headers: {
+            Accept: "application/json",
+            ...getAuthHeaders(), // ✅ Bearer fallback para móvil/tablet
+          },
         });
 
         if (!res.ok) {
-          // 401/403 -> sin sesión válida
           openModal?.("login");
           navigate("/", { replace: true });
           return;
@@ -199,7 +227,7 @@ const MyReviewsPage = () => {
           user: review.name || "Usuario",
           bookTitle: review.book_title,
           author: review.author,
-          imageUrl: review.image_url || null,
+          imageUrl: normalizeImageUrl(review.image_url),
           rating: Number(review.rating) || 0,
           text: review.review_text,
           categoriaIA: review.categoria_ia,
@@ -241,9 +269,7 @@ const MyReviewsPage = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-900 mb-4"></div>
-            <p className="text-amber-900 font-serif italic text-xl">
-              Buscando tus crónicas...
-            </p>
+            <p className="text-amber-900 font-serif italic text-xl">Buscando tus crónicas...</p>
           </div>
         ) : reviews.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">

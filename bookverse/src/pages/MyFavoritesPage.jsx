@@ -3,6 +3,18 @@ import { Heart, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API_URL from "../config";
 
+/* =========================================================
+  ✅ Helper: Auth headers (cookie + Bearer fallback)
+========================================================= */
+const getAuthHeaders = () => {
+  try {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+};
+
 const MyFavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,24 +23,30 @@ const MyFavoritesPage = () => {
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
-        // 1) Validar sesión real (cookie)
+        // 1) Validar sesión real (cookie) + fallback Bearer
         const meRes = await fetch(`${API_URL}/api/auth/me`, {
           method: "GET",
           credentials: "include",
-          headers: { Accept: "application/json" },
+          headers: {
+            Accept: "application/json",
+            ...getAuthHeaders(),
+          },
         });
 
         if (!meRes.ok) {
-          // No hay sesión
+          // No hay sesión -> puedes mandar al home o abrir modal
           navigate("/");
           return;
         }
 
-        // 2) Pedir favoritos del usuario logueado
+        // 2) Pedir favoritos del usuario logueado (cookie + fallback Bearer)
         const favRes = await fetch(`${API_URL}/api/reviews/favorites/me`, {
           method: "GET",
           credentials: "include",
-          headers: { Accept: "application/json" },
+          headers: {
+            Accept: "application/json",
+            ...getAuthHeaders(),
+          },
         });
 
         if (!favRes.ok) {
@@ -37,7 +55,7 @@ const MyFavoritesPage = () => {
           return;
         }
 
-        const data = await favRes.json();
+        const data = await favRes.json().catch(() => []);
         setFavorites(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error cargando favoritos:", error);

@@ -10,7 +10,7 @@ const AuthModal = ({
   setAuthMessage,
   setAuthUser,
   authMessage,
-  checkSession, // ✅ IMPORTANTE: viene desde Layout
+  checkSession,
 }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,9 +33,7 @@ const AuthModal = ({
     setAuthMessage(null);
 
     const endpoint =
-      mode === "register"
-        ? `${API_URL}/api/auth/register`
-        : `${API_URL}/api/auth/login`;
+      mode === "register" ? `${API_URL}/api/auth/register` : `${API_URL}/api/auth/login`;
 
     const payload = mode === "register" ? { name, email, password } : { email, password };
 
@@ -46,7 +44,7 @@ const AuthModal = ({
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        credentials: "include", // ✅ CLAVE: permite que el navegador guarde la cookie token
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -60,6 +58,7 @@ const AuthModal = ({
         return;
       }
 
+      // ✅ REGISTER OK
       if (mode === "register") {
         setAuthMessage({
           type: "success",
@@ -69,22 +68,25 @@ const AuthModal = ({
         return;
       }
 
-      // ✅ LOGIN OK: el backend devuelve { user: { id, name, email } }
-      const user = data.user;
+      // ✅ LOGIN OK
+      const user = data?.user ?? null;
 
-      // Mensaje bonito
+      // ✅ Guardar token si el backend lo manda (fallback para móvil/tablet)
+      // (si no viene, no rompe nada)
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
+      }
+
       setAuthMessage({
         type: "success",
         text: `Bienvenido, ${user?.name || "Usuario"}.`,
       });
 
-      // ✅ Si el layout ya usa sesión real con /me, lo ideal es refrescar sesión:
+      // ✅ intentamos refrescar sesión real (cookie)
       if (typeof checkSession === "function") {
         const sessionUser = await checkSession();
-        // Por si acaso, también seteo user directo (fallback)
         setAuthUser(sessionUser || user || null);
       } else {
-        // fallback si no pasaste checkSession
         setAuthUser(user || null);
       }
 
@@ -232,6 +234,7 @@ const AuthModal = ({
               onClick={() => setMode(isLogin ? "register" : "login")}
               className="text-amber-800 hover:text-stone-900 font-bold ml-2 underline underline-offset-4 decoration-amber-800/30 hover:decoration-amber-800 transition-all"
               disabled={isLoading}
+              type="button"
             >
               {isLogin ? "Regístrate aquí" : "Inicia sesión"}
             </button>

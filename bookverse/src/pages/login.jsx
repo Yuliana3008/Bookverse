@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle, BookOpen } from "lucide-react";
-import { io } from "socket.io-client"; // ✅ NUEVO
+import { io } from "socket.io-client";
 
 import Navbar from "../components/Navbar";
 import AuthModal from "../components/AuthModal";
@@ -11,7 +11,7 @@ import API_URL from "../config";
 const BookVerseLayout = () => {
   const navigate = useNavigate();
 
-  // ✅ Sesión real (cookie + /me)
+  // ✅ Sesión real
   const [authUser, setAuthUser] = useState(null);
 
   // UI states
@@ -24,42 +24,78 @@ const BookVerseLayout = () => {
   const userName = authUser?.name || "Usuario";
   const userId = authUser?.id ?? null;
 
-  // ✅ SOCKET: lo guardamos en un ref para NO recrearlo en cada render
   const socketRef = useRef(null);
+
+  // ✅ helper: leer token local (fallback para móvil/tablet)
+  const getLocalToken = () => {
+    try {
+      return localStorage.getItem("token") || null;
+    } catch {
+      return null;
+    }
+  };
 
   /**
    * ✅ checkSession:
-   * - pide /me con credentials: include para enviar cookies
-   * - si hay sesión, setAuthUser(user)
-   * - si no, setAuthUser(null)
+   * 1) intenta con cookie (credentials)
+   * 2) si falla, intenta con Authorization Bearer token (localStorage)
    */
   const checkSession = useCallback(async () => {
+    const url = `${API_URL}/api/auth/me`;
+
+    // 1) COOKIE
     try {
-      const res = await fetch(`${API_URL}/api/auth/me`, {
+      const res = await fetch(url, {
         method: "GET",
         credentials: "include",
         headers: { Accept: "application/json" },
       });
 
-      if (!res.ok) {
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const user = data?.user ?? null;
+        setAuthUser(user);
+        return user;
+      }
+    } catch (e) {
+      // seguimos al fallback
+    }
+
+    // 2) BEARER TOKEN (fallback)
+    try {
+      const token = getLocalToken();
+      if (!token) {
         setAuthUser(null);
         return null;
       }
 
-      const data = await res.json();
-      const user = data?.user ?? null;
-      setAuthUser(user);
-      return user;
-    } catch (err) {
+      const res2 = await fetch(url, {
+        method: "GET",
+        credentials: "include", // ok dejarlo, no estorba
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res2.ok) {
+        setAuthUser(null);
+        return null;
+      }
+
+      const data2 = await res2.json().catch(() => ({}));
+      const user2 = data2?.user ?? null;
+      setAuthUser(user2);
+      return user2;
+    } catch (e) {
       setAuthUser(null);
       return null;
     }
   }, [API_URL]);
 
-  // Alias opcional
   const refreshSession = checkSession;
 
-  // ✅ Check inicial (al cargar)
+  // ✅ Check inicial
   useEffect(() => {
     let mounted = true;
 
@@ -80,7 +116,6 @@ const BookVerseLayout = () => {
     return () => clearTimeout(t);
   }, [authMessage]);
 
-  // Modal handlers
   const openModal = (mode) => {
     setAuthMode(mode);
     setIsModalOpen(true);
@@ -91,7 +126,7 @@ const BookVerseLayout = () => {
     setAuthMessage(null);
   };
 
-  // ✅ Logout real (borra cookie)
+  // ✅ Logout: borra cookie + token local
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
@@ -101,7 +136,10 @@ const BookVerseLayout = () => {
       });
     } catch (e) {}
 
-    // ✅ desconectar socket al salir (opcional pero recomendado)
+    try {
+      localStorage.removeItem("token");
+    } catch (e) {}
+
     try {
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -119,21 +157,18 @@ const BookVerseLayout = () => {
   };
 
   /* =========================================================
-      ✅ SOCKET.IO: conectar + escuchar notificaciones
-      - Conecta una vez cuando la app está lista
-      - Se une al cuarto cuando authUser existe
+      ✅ SOCKET.IO
   ========================================================= */
 
-  // 1) Conectar socket una sola vez cuando ya está listo el layout
   useEffect(() => {
     if (!isReady) return;
-
-    // evitar crear más de un socket
     if (socketRef.current) return;
 
+    // 👇 Importante: en deploy, Socket debe apuntar al BACKEND (Render)
+    // y NO al frontend (Vercel)
     const socket = io(API_URL, {
       withCredentials: true,
-      transports: ["websocket", "polling"], // ✅ mejor compatibilidad en deploy
+      transports: ["websocket", "polling"],
     });
 
     socketRef.current = socket;
@@ -146,10 +181,7 @@ const BookVerseLayout = () => {
       console.error("🔴 Socket connect_error:", err?.message || err);
     });
 
-    // escuchar notificaciones
     socket.on("nueva_notificacion", (data) => {
-      console.log("🔔 Nueva notificación:", data);
-
       const texto =
         data?.tipo === "favorito"
           ? `${data.emisor_nombre || "Alguien"} añadió tu reseña a favoritos`
@@ -165,20 +197,16 @@ const BookVerseLayout = () => {
       } catch (e) {}
       socketRef.current = null;
     };
-  }, [isReady]);
+  }, [isReady, API_URL]);
 
-  // 2) Unirse al cuarto del usuario cuando se loguea
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
-
     if (!authUser?.id) return;
 
     socket.emit("join_user_room", authUser.id);
-    console.log("📡 join_user_room:", authUser.id);
   }, [authUser?.id]);
 
-  // ⏳ Loading (hasta validar /me)
   if (!isReady) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-[#e9e4d5]">
@@ -205,7 +233,6 @@ const BookVerseLayout = () => {
       />
 
       <main className="relative">
-        {/* Notificación */}
         {authMessage && (
           <div
             className={`fixed top-24 right-6 z-[60] p-5 border-l-4 shadow-2xl transform transition-all duration-300 ${
@@ -237,19 +264,16 @@ const BookVerseLayout = () => {
 
         <Outlet
           context={{
-            // estado
             isAuthenticated,
             authUser,
             userName,
             userId,
 
-            // acciones
             openModal,
             handleLogout,
             setAuthUser,
             setAuthMessage,
 
-            // refrescar sesión desde cualquier página/modal
             checkSession,
             refreshSession,
           }}
