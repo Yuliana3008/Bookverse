@@ -119,7 +119,7 @@ const AuthModal = ({
         <div className="flex justify-between items-center mb-8">
           <div>
             <p className="text-[10px] tracking-[0.3em] text-amber-800 font-bold uppercase mb-1">
-              BookVerse
+              MyBookCompass
             </p>
             <h2 className="text-3xl font-serif font-black text-stone-900 italic">
               {isLogin ? "Bienvenido" : "Nueva Cuenta"}

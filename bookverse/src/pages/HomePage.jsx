@@ -189,7 +189,7 @@ const HeroSection = ({ openModal, isAuthenticated }) => (
         <div className="max-w-6xl mx-auto relative z-10 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 backdrop-blur-md mb-8">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-400 font-bold tracking-[0.5em] uppercase text-[10px]">Entre Páginas</span>
+                <span className="text-amber-400 font-bold tracking-[0.5em] uppercase text-[10px]">MyBookCompass</span>
             </div>
             <h1 className="text-7xl md:text-9xl font-serif font-black text-white mb-8 leading-[0.9] tracking-tighter">
                 Descubre tu <br/><span className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-transparent italic font-serif">Próxima Historia</span>

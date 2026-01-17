@@ -36,7 +36,7 @@ router.post("/register", async (req, res) => {
     if (err.code === "23505") {
       return res
         .status(409)
-        .json({ error: "El correo ya está registrado en BookVerse." });
+        .json({ error: "El correo ya está registrado en MyBookCompass." });
     }
     console.error("Error en el registro:", err);
     res

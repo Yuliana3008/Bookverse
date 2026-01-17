@@ -157,7 +157,10 @@ router.get("/search", async (req, res) => {
       query += ` AND r.rating = $${values.length}`;
     }
 
-    query += sort === "asc" ? " ORDER BY r.created_at ASC" : " ORDER BY r.created_at DESC";
+    query +=
+      sort === "asc"
+        ? " ORDER BY r.created_at ASC"
+        : " ORDER BY r.created_at DESC";
 
     const result = await pool.query(query, values);
     res.json(result.rows);
@@ -444,21 +447,26 @@ router.post("/:id/comments", auth, async (req, res) => {
 
     // Notificación si no es tu propia reseña
     if (Number(data.owner_id) !== Number(usuarios_id)) {
-      await pool.query(
-        "INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id) VALUES ($1, $2, 'comentario', $3)",
+      // ✅ guardar notificación y obtener id real
+      const notifInsert = await pool.query(
+        `INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id)
+         VALUES ($1, $2, 'comentario', $3)
+         RETURNING id, tipo, review_id, leido, created_at`,
         [data.owner_id, usuarios_id, id]
       );
+
+      const notif = notifInsert.rows[0];
 
       const io = req.app.get("io");
       if (io) {
         io.to(`user_${data.owner_id}`).emit("nueva_notificacion", {
-          id: Math.random(),
-          tipo: "comentario",
+          id: notif.id, // ✅ id real (ya no Math.random)
+          tipo: notif.tipo,
           emisor_nombre: data.user_name,
           book_title: data.book_title,
-          review_id: id,
-          leido: false,
-          created_at: new Date(),
+          review_id: notif.review_id,
+          leido: notif.leido,
+          created_at: notif.created_at,
         });
       }
     }
@@ -544,10 +552,14 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
 
     let recomendaciones;
     try {
-      recomendaciones = JSON.parse(completion.choices[0]?.message?.content || "{}");
+      recomendaciones = JSON.parse(
+        completion.choices[0]?.message?.content || "{}"
+      );
     } catch (parseError) {
       console.error("❌ Error parseando JSON de Groq:", parseError);
-      return res.status(500).json({ error: "Error procesando la respuesta de la IA" });
+      return res
+        .status(500)
+        .json({ error: "Error procesando la respuesta de la IA" });
     }
 
     const librosConInfo = await Promise.all(
@@ -612,7 +624,10 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
     res.json({ success: true, recomendaciones: librosConInfo });
   } catch (error) {
     console.error("❌ Error en recomendación:", error);
-    res.status(500).json({ error: "Error generando recomendaciones", details: error.message });
+    res.status(500).json({
+      error: "Error generando recomendaciones",
+      details: error.message,
+    });
   }
 });
 
@@ -708,23 +723,27 @@ router.post("/favorites/toggle", auth, async (req, res) => {
         );
         const emisor_nombre = emisorRes.rows[0]?.name || "Alguien";
 
-        // guardar notificación
-        await pool.query(
-          "INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id) VALUES ($1, $2, 'favorito', $3)",
+        // ✅ guardar notificación y obtener id real
+        const notifInsert = await pool.query(
+          `INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id)
+           VALUES ($1, $2, 'favorito', $3)
+           RETURNING id, tipo, review_id, leido, created_at`,
           [owner_id, usuarios_id, review_id]
         );
+
+        const notif = notifInsert.rows[0];
 
         // socket emit
         const io = req.app.get("io");
         if (io) {
           io.to(`user_${owner_id}`).emit("nueva_notificacion", {
-            id: Math.random(),
-            tipo: "favorito",
+            id: notif.id, // ✅ id real (ya no Math.random)
+            tipo: notif.tipo,
             emisor_nombre,
             book_title,
-            review_id,
-            leido: false,
-            created_at: new Date(),
+            review_id: notif.review_id,
+            leido: notif.leido,
+            created_at: notif.created_at,
           });
         }
       }
@@ -762,13 +781,38 @@ router.get("/notifications/me", auth, async (req, res) => {
   }
 });
 
+// ✅ NUEVA: marcar UNA notificación como leída
+router.put("/notifications/read/:notificationId", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { notificationId } = req.params;
+
+    const result = await pool.query(
+      `UPDATE notificaciones
+       SET leido = TRUE
+       WHERE id = $1 AND usuario_id = $2
+       RETURNING id, leido`,
+      [notificationId, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Notificación no encontrada" });
+    }
+
+    res.json({ success: true, notification: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.put("/notifications/read-all/me", auth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    await pool.query("UPDATE notificaciones SET leido = TRUE WHERE usuario_id = $1", [
-      userId,
-    ]);
+    await pool.query(
+      "UPDATE notificaciones SET leido = TRUE WHERE usuario_id = $1",
+      [userId]
+    );
 
     res.json({ success: true });
   } catch (error) {

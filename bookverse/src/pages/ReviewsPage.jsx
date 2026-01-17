@@ -272,7 +272,7 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <p className="text-amber-900 font-bold tracking-[0.4em] uppercase text-xs mb-3 font-sans">
-            ENTRE PÁGINAS 
+            MyBookCompass 
           </p>
           <h2 className="text-4xl font-serif font-black text-stone-900 italic flex items-center justify-center">
             <BookOpen className="w-8 h-8 mr-4 text-amber-800 opacity-80" />
@@ -399,7 +399,7 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
 const ReviewsPage = ({ limit }) => {
   return (
     <RecentReviewsSection
-      title={limit ? "Reseñas Destacadas" : "Todas las Reseñas de Entre Páginas"}
+      title={limit ? "Reseñas Destacadas" : "Todas las Reseñas de MyBookCompass"}
       limit={limit}
     />
   );

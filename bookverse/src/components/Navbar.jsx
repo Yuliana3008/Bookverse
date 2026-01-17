@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import {
-  BookOpen,
   Users,
   LogIn,
   Edit3,
@@ -51,6 +50,8 @@ const NavItem = ({ item, onClick, isCurrentPage }) => {
 
 const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -66,12 +67,23 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
     withCredentials: true, // ✅ CLAVE para rutas privadas con cookie
   });
 
+  // ✅ Backend real:
+  // GET /api/reviews/notifications/me
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get(`/api/reviews/notifications/me`);
+      setNotifications(res.data);
+      setHasUnread(res.data.some((n) => !n.leido));
+    } catch (error) {
+      console.error("Error al cargar notificaciones", error);
+    }
+  };
+
   // 1) Cargar historial y conectar Socket
   useEffect(() => {
     if (isAuthenticated && userId) {
       fetchNotifications();
 
-      // ✅ (opcional recomendado) fuerza websocket para evitar fallas por long-polling en algunos deploys
       socketRef.current = io(SOCKET_URL, {
         withCredentials: true,
         transports: ["websocket"],
@@ -88,19 +100,8 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, userId]);
-
-  // ✅ Backend real:
-  // GET /api/reviews/notifications/me
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get(`/api/reviews/notifications/me`);
-      setNotifications(res.data);
-      setHasUnread(res.data.some((n) => !n.leido));
-    } catch (error) {
-      console.error("Error al cargar notificaciones", error);
-    }
-  };
 
   // 2) Cierre al hacer clic fuera
   useEffect(() => {
@@ -116,23 +117,45 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 3) Abrir notificaciones y marcar como leídas
-  // ✅ Backend real:
-  // PUT /api/reviews/notifications/read-all/me
-  const handleToggleNotif = async () => {
+  // 3) Abrir/Cerrar panel de notificaciones (NO marcamos todas como leídas aquí)
+  const handleToggleNotif = () => {
     const newState = !isNotifOpen;
     setIsNotifOpen(newState);
     if (newState) setIsDropdownOpen(false);
+  };
 
-    if (newState && hasUnread) {
-      setHasUnread(false);
-      try {
-        await api.put(`/api/reviews/notifications/read-all/me`);
-        // opcional: refrescar lista para que queden todas leídas
-        // await fetchNotifications();
-      } catch (e) {
-        console.error(e);
+  // ✅ Click en notificación: marcar SOLO esa como leída (si existe endpoint) + navegar a la reseña
+  const handleNotificationClick = async (n) => {
+    // Cierra el panel
+    setIsNotifOpen(false);
+
+    // Marcar como leída (solo una) si tienes el endpoint:
+    // PUT /api/reviews/notifications/read/:notificationId
+    try {
+      if (!n.leido && n.id) {
+        await api.put(`/api/reviews/notifications/read/${n.id}`);
+
+        setNotifications((prev) =>
+          prev.map((x) => (x.id === n.id ? { ...x, leido: true } : x))
+        );
       }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      // recalcular badge correctamente
+      setHasUnread((prev) => {
+        // Si la que clickeaste era la última sin leer, quitamos el badge
+        if (!n.leido) {
+          const remainingUnread = notifications.some(
+            (x) => x.id !== n.id && !x.leido
+          );
+          return remainingUnread;
+        }
+        return prev;
+      });
+
+      // ✅ TU RUTA REAL DE DETALLE ES: /review/:id
+      navigate(`/review/${n.review_id}`);
     }
   };
 
@@ -155,10 +178,13 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
     <header className="sticky top-0 z-40 bg-[#fdfcf8] bg-opacity-95 backdrop-blur-sm shadow-sm border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2 transition duration-200 hover:opacity-80">
+        <Link
+          to="/"
+          className="flex items-center space-x-2 transition duration-200 hover:opacity-80"
+        >
           <BookText className="w-8 h-8 text-amber-700" />
           <span className="text-3xl font-extrabold text-stone-800 tracking-tight font-serif">
-            Entre Páginas
+            MyBookCompass
           </span>
         </Link>
 
@@ -197,7 +223,9 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                 {isNotifOpen && (
                   <div className="absolute right-0 mt-2 w-80 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 overflow-hidden slide-in-top">
                     <div className="p-3 border-b border-stone-100 bg-stone-50 flex justify-between items-center">
-                      <span className="font-bold text-stone-800 font-serif">Notificaciones</span>
+                      <span className="font-bold text-stone-800 font-serif">
+                        Notificaciones
+                      </span>
                       <CheckCheck size={16} className="text-stone-400" />
                     </div>
 
@@ -208,15 +236,21 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                         </div>
                       ) : (
                         notifications.map((n) => (
-                          <div
-                            key={n.id || `${n.tipo}-${n.review_id}-${n.created_at}-${Math.random()}`}
-                            className={`p-4 border-b border-stone-50 flex gap-3 hover:bg-amber-50/30 transition ${
-                              !n.leido ? "bg-amber-50/50" : ""
-                            }`}
+                          <button
+                            type="button"
+                            key={n.id || `${n.tipo}-${n.review_id}-${n.created_at}`}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`w-full text-left p-4 border-b border-stone-50 flex gap-3 hover:bg-amber-50/30 transition ${
+                              !n.leido ? "bg-amber-100/70 border-l-4 border-l-amber-500 shadow-sm"
+    : "bg-white border-stone-50 hover:bg-amber-50/30"
+  }`}
+                            title="Ver reseña"
                           >
                             <div
                               className={`mt-1 shrink-0 ${
-                                n.tipo === "comentario" ? "text-blue-500" : "text-rose-500"
+                                n.tipo === "comentario"
+                                  ? "text-blue-500"
+                                  : "text-rose-500"
                               }`}
                             >
                               {n.tipo === "comentario" ? (
@@ -241,13 +275,16 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                                 <Clock size={10} />{" "}
                                 {n.created_at
                                   ? new Date(n.created_at).toLocaleTimeString([], {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "numeric",
                                       hour: "2-digit",
                                       minute: "2-digit",
                                     })
                                   : "Ahora"}
                               </span>
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>
