@@ -20,8 +20,8 @@ import {
 import API_URL from "../config";
 
 /* =========================================================
-   ✅ Helper: Auth headers (cookie + Bearer fallback)
-   - En mobile/tablet a veces NO se guarda cookie -> Bearer salva
+    ✅ Helper: Auth headers (cookie + Bearer fallback)
+    - En mobile/tablet a veces NO se guarda cookie -> Bearer salva
 ========================================================= */
 const getAuthHeaders = () => {
   try {
@@ -33,9 +33,9 @@ const getAuthHeaders = () => {
 };
 
 /* =========================================================
-   ✅ COMPONENTE: COMENTARIOS
-   - GET comentarios: público
-   - POST/DELETE: privado (cookie) + fallback Bearer
+    ✅ COMPONENTE: COMENTARIOS
+    - GET comentarios: público
+    - POST/DELETE: privado (cookie) + fallback Bearer
 ========================================================= */
 const CommentsSection = ({ reviewId, authUser, openModal }) => {
   const [comments, setComments] = useState([]);
@@ -115,19 +115,19 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
   };
 
   return (
-    <section className="mt-12 bg-[#f4f1ea] border border-stone-400 p-8 shadow-inner mb-20">
-      <div className="flex items-center gap-3 mb-8 border-b border-stone-300 pb-4">
-        <MessageSquare className="w-6 h-6 text-amber-900" />
-        <h3 className="font-serif text-2xl font-black text-stone-900 italic">
+    <section className="mt-8 md:mt-12 bg-[#f4f1ea] border border-stone-400 p-5 md:p-8 shadow-inner mb-10 md:mb-20">
+      <div className="flex items-center gap-3 mb-6 md:mb-8 border-b border-stone-300 pb-4">
+        <MessageSquare className="w-5 h-5 md:w-6 md:h-6 text-amber-900" />
+        <h3 className="font-serif text-xl md:text-2xl font-black text-stone-900 italic">
           Conversaciones del Archivo
         </h3>
       </div>
 
       {authUser ? (
-        <form onSubmit={handleSubmit} className="mb-12">
+        <form onSubmit={handleSubmit} className="mb-8 md:mb-12">
           <div className="relative group">
             <textarea
-              className="w-full bg-[#fdfcf8] border border-stone-300 p-4 pr-16 font-serif text-stone-800 focus:border-amber-800 outline-none transition-all placeholder:italic resize-none overflow-hidden"
+              className="w-full bg-[#fdfcf8] border border-stone-300 p-4 pr-14 md:pr-16 font-serif text-stone-800 focus:border-amber-800 outline-none transition-all placeholder:italic resize-none overflow-hidden text-sm md:text-base"
               placeholder="Añade un comentario a la crónica..."
               rows="2"
               value={newComment}
@@ -144,18 +144,18 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
           </div>
         </form>
       ) : (
-        <div className="mb-12 p-6 border-2 border-dashed border-stone-300 text-center font-serif italic text-stone-500">
+        <div className="mb-12 p-6 border-2 border-dashed border-stone-300 text-center font-serif italic text-stone-500 text-sm md:text-base">
           Inicia sesión para participar en el Archivo.
         </div>
       )}
 
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8">
         {comments.map((c) => (
-          <div key={c.id} className="relative pl-6 border-l-2 border-amber-800/30 group">
+          <div key={c.id} className="relative pl-4 md:pl-6 border-l-2 border-amber-800/30 group">
             <div className="flex justify-between items-start mb-1">
-              <div className="flex items-center gap-3">
-                <span className="font-serif font-bold text-stone-900 text-sm">{c.user_name}</span>
-                <span className="text-[9px] uppercase tracking-widest text-stone-400 italic">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-serif font-bold text-stone-900 text-xs md:text-sm">{c.user_name}</span>
+                <span className="text-[8px] md:text-[9px] uppercase tracking-widest text-stone-400 italic">
                   {c.created_at ? new Date(c.created_at).toLocaleDateString() : "Reciente"}
                 </span>
               </div>
@@ -174,7 +174,7 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
               )}
             </div>
 
-            <p className="text-stone-700 font-serif italic whitespace-pre-wrap">"{c.text}"</p>
+            <p className="text-stone-700 font-serif italic whitespace-pre-wrap text-sm md:text-base">"{c.text}"</p>
           </div>
         ))}
       </div>
@@ -183,7 +183,7 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
 };
 
 /* =========================================================
-   ✅ PÁGINA DETALLE RESEÑA
+    ✅ PÁGINA DETALLE RESEÑA
 ========================================================= */
 const ReviewDetailPage = () => {
   const { id } = useParams();
@@ -388,18 +388,18 @@ const ReviewDetailPage = () => {
   const { style, icon } = getGenreDetails(review.categoria_ia);
 
   return (
-    <div className="min-h-screen bg-[#e9e4d5] py-20 px-4">
+    <div className="min-h-screen bg-[#e9e4d5] py-10 md:py-20 px-4">
       <div className="max-w-3xl mx-auto">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-amber-900 mb-8 font-serif italic hover:underline group"
+          className="flex items-center text-amber-900 mb-6 md:mb-8 font-serif italic hover:underline group text-sm md:text-base"
         >
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />{" "}
           Volver al catálogo
         </button>
 
         <article className="bg-[#f4f1ea] border border-stone-400 shadow-2xl overflow-hidden relative">
-          <div className="w-full h-96 overflow-hidden border-b border-stone-400 bg-stone-200">
+          <div className="w-full h-64 md:h-96 overflow-hidden border-b border-stone-400 bg-stone-200">
             {imageUrl ? (
               <img
                 src={imageUrl}
@@ -413,18 +413,18 @@ const ReviewDetailPage = () => {
             )}
           </div>
 
-          <div className="p-12">
+          <div className="p-6 md:p-12">
             {!isEditingReview ? (
               <>
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex flex-col gap-3">
-                    <h1 className="text-5xl font-serif font-black text-stone-900 leading-tight">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
+                  <div className="flex flex-col gap-3 md:gap-4 w-full">
+                    <h1 className="text-3xl md:text-5xl font-serif font-black text-stone-900 leading-tight break-words">
                       {review.book_title}
                     </h1>
 
                     <button
                       onClick={toggleFavorite}
-                      className="flex items-center gap-2 w-fit px-3 py-1 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
+                      className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
                       type="button"
                     >
                       <Star
@@ -440,7 +440,7 @@ const ReviewDetailPage = () => {
                     </button>
                   </div>
 
-                  <div className="bg-amber-900 text-white px-4 py-2 flex items-center shadow-lg">
+                  <div className="bg-amber-900 text-white px-4 py-2 flex items-center shadow-lg self-start md:self-auto shrink-0">
                     <Star className="w-5 h-5 mr-2 text-amber-400 fill-amber-400" />
                     <span className="text-xl font-bold">{review.rating}</span>
                   </div>
@@ -448,29 +448,29 @@ const ReviewDetailPage = () => {
 
                 <div className="mb-6 flex">
                   <span
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest ${style}`}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] md:text-xs font-black uppercase tracking-widest ${style}`}
                   >
                     {icon} Clasificación IA: {review.categoria_ia || "Analizando"}
                   </span>
                 </div>
 
-                <p className="text-amber-900 font-sans font-bold uppercase tracking-[0.2em] text-sm mb-8">
+                <p className="text-amber-900 font-sans font-bold uppercase tracking-[0.2em] text-xs md:text-sm mb-8">
                   De {review.author || "Obra Anónima"}
                 </p>
 
-                <div className="prose prose-stone max-w-none mb-12 relative">
+                <div className="prose prose-stone max-w-none mb-10 md:mb-12 relative">
                   {review.is_spoiler && !revealed ? (
                     <div className="relative">
-                      <p className="text-stone-800 text-xl leading-relaxed font-serif italic blur-md opacity-40">
+                      <p className="text-stone-800 text-lg md:text-xl leading-relaxed font-serif italic blur-md opacity-40 select-none">
                         {review.review_text}
                       </p>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-200/30 p-6 text-center">
-                        <p className="text-amber-900 font-serif font-bold text-lg mb-4">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-200/30 p-6 text-center border-2 border-dashed border-amber-800/20">
+                        <p className="text-amber-900 font-serif font-bold text-base md:text-lg mb-4 text-center">
                           ⚠️ Advertencia: Spoiler.
                         </p>
                         <button
                           onClick={() => setRevealed(true)}
-                          className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest"
+                          className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest text-xs md:text-sm"
                           type="button"
                         >
                           <Eye className="w-4 h-4 inline mr-2" /> Revelar
@@ -478,7 +478,7 @@ const ReviewDetailPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-stone-800 text-xl leading-relaxed font-serif italic first-letter:text-5xl first-letter:text-amber-900">
+                    <p className="text-stone-800 text-lg md:text-xl leading-relaxed font-serif italic first-letter:text-4xl md:first-letter:text-5xl first-letter:text-amber-900">
                       {review.review_text}
                     </p>
                   )}
@@ -487,14 +487,14 @@ const ReviewDetailPage = () => {
             ) : (
               <div className="space-y-6">
                 <input
-                  className="text-3xl font-serif w-full p-2 border border-stone-300"
+                  className="text-xl md:text-3xl font-serif w-full p-3 border border-stone-300"
                   value={editReviewFields.book_title}
                   onChange={(e) =>
                     setEditReviewFields({ ...editReviewFields, book_title: e.target.value })
                   }
                 />
                 <input
-                  className="w-full p-2 border border-stone-300"
+                  className="w-full p-3 border border-stone-300"
                   value={editReviewFields.author}
                   onChange={(e) =>
                     setEditReviewFields({ ...editReviewFields, author: e.target.value })
@@ -511,14 +511,14 @@ const ReviewDetailPage = () => {
                 <div className="flex gap-4">
                   <button
                     onClick={handleUpdateReview}
-                    className="bg-amber-900 text-white px-6 py-2"
+                    className="bg-amber-900 text-white px-6 py-2 text-xs font-bold uppercase"
                     type="button"
                   >
                     GUARDAR CAMBIOS
                   </button>
                   <button
                     onClick={() => setIsEditingReview(false)}
-                    className="text-stone-500"
+                    className="text-stone-500 text-xs font-bold uppercase"
                     type="button"
                   >
                     CANCELAR
@@ -527,7 +527,7 @@ const ReviewDetailPage = () => {
               </div>
             )}
 
-            <div className="mt-12 pt-8 border-t border-stone-300 flex flex-wrap gap-6 justify-between items-center text-stone-500 text-[10px] uppercase tracking-[0.2em]">
+            <div className="mt-8 md:mt-12 pt-8 border-t border-stone-300 flex flex-wrap gap-y-4 gap-x-6 justify-between items-center text-stone-500 text-[9px] md:text-[10px] uppercase tracking-[0.2em]">
               <div className="flex items-center">
                 <User className="w-4 h-4 mr-2 text-amber-900" />
                 Escrito por{" "}
@@ -545,17 +545,17 @@ const ReviewDetailPage = () => {
               </div>
 
               {authUser?.id === review.usuarios_id && !isEditingReview && (
-                <div className="flex gap-4 ml-auto">
+                <div className="flex gap-4 w-full md:w-auto md:ml-auto pt-4 md:pt-0">
                   <button
                     onClick={() => setIsEditingReview(true)}
-                    className="flex items-center gap-1 text-amber-900 hover:underline"
+                    className="flex items-center gap-1 text-amber-900 hover:underline font-bold"
                     type="button"
                   >
                     <Edit2 className="w-3 h-3" /> Editar Crónica
                   </button>
                   <button
                     onClick={handleDeleteFullReview}
-                    className="flex items-center gap-1 text-red-800 hover:underline"
+                    className="flex items-center gap-1 text-red-800 hover:underline font-bold"
                     type="button"
                   >
                     <Trash2 className="w-3 h-3" /> Eliminar

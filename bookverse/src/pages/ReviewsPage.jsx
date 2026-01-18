@@ -82,7 +82,7 @@ const ReviewCard = ({ review }) => {
 
   return (
     <div className="block group transition-all duration-300 hover:-translate-y-2 h-full">
-      <div className="bg-[#fdfcf8] p-7 border border-stone-300 shadow-md group-hover:shadow-2xl transition-all group-hover:border-amber-700 relative h-full flex flex-col">
+      <div className="bg-[#fdfcf8] p-5 md:p-7 border border-stone-300 shadow-md group-hover:shadow-2xl transition-all group-hover:border-amber-700 relative h-full flex flex-col">
         <div className="absolute top-0 left-0 w-1.5 h-full bg-stone-200 group-hover:bg-amber-800 transition-colors"></div>
 
         <div className="absolute -top-3 right-4 z-20">
@@ -107,22 +107,22 @@ const ReviewCard = ({ review }) => {
           />
         </div>
 
-        <div className="flex justify-between items-center mb-4 pl-2">
-          <div className="flex items-center space-x-2">
-            <div className="bg-stone-100 p-1 rounded border border-stone-200">
+        <div className="flex justify-between items-center mb-4 pl-2 gap-2">
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="bg-stone-100 p-1 rounded border border-stone-200 shrink-0">
               <User className="w-4 h-4 text-stone-600" />
             </div>
-            <p className="font-serif text-xs font-bold text-stone-600 truncate max-w-[120px]">
+            <p className="font-serif text-xs font-bold text-stone-600 truncate">
               {review.user}
             </p>
           </div>
 
-          <div className="flex bg-amber-50/50 p-1 border border-amber-100/50 rounded shadow-sm">
+          <div className="flex bg-amber-50/50 p-1 border border-amber-100/50 rounded shadow-sm shrink-0">
             {renderStars(review.rating)}
           </div>
         </div>
 
-        <h3 className="text-xl font-serif font-black text-stone-900 mb-1 pl-2 leading-tight group-hover:text-amber-900 transition-colors">
+        <h3 className="text-lg md:text-xl font-serif font-black text-stone-900 mb-1 pl-2 leading-tight group-hover:text-amber-900 transition-colors">
           {review.bookTitle}
         </h3>
 
@@ -133,7 +133,7 @@ const ReviewCard = ({ review }) => {
         <div className="relative mb-6 flex-grow">
           {review.isSpoiler && !revealed ? (
             <div className="relative overflow-hidden cursor-default">
-              <p className="text-stone-400 italic font-serif text-sm pl-6 border-l-2 border-stone-200 line-clamp-3 leading-relaxed blur-md select-none pointer-events-none grayscale opacity-30">
+              <p className="text-stone-400 italic font-serif text-sm pl-4 md:pl-6 border-l-2 border-stone-200 line-clamp-3 leading-relaxed blur-md select-none pointer-events-none grayscale opacity-30">
                 "{review.text}"
               </p>
               <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center bg-stone-100/10">
@@ -150,7 +150,7 @@ const ReviewCard = ({ review }) => {
               </div>
             </div>
           ) : (
-            <p className="text-stone-700 italic font-serif text-sm pl-6 border-l-2 border-stone-200 line-clamp-3 leading-relaxed flex-grow">
+            <p className="text-stone-700 italic font-serif text-sm pl-4 md:pl-6 border-l-2 border-stone-200 line-clamp-3 leading-relaxed flex-grow">
               "{review.text}"
             </p>
           )}
@@ -175,17 +175,12 @@ const ReviewCard = ({ review }) => {
 export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
   const [rawReviews, setRawReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // newest | oldest
   const [sortOrder, setSortOrder] = useState("newest");
-
-  // paginación (solo cuando NO hay limit)
   const [page, setPage] = useState(1);
-  const pageSize = 10; // ✅ 9 queda perfecto con grid md:grid-cols-3 (3x3)
+  const pageSize = 10; 
 
   useEffect(() => {
     let alive = true;
-
     setLoading(true);
     fetch(`${API_URL}/api/reviews`)
       .then((res) => {
@@ -225,17 +220,11 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
         setLoading(false);
       });
 
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
-  // si cambias el orden, vuelve a página 1
-  useEffect(() => {
-    setPage(1);
-  }, [sortOrder]);
+  useEffect(() => { setPage(1); }, [sortOrder]);
 
-  // Ordenar (siempre)
   const sortedReviews = useMemo(() => {
     return [...rawReviews].sort((a, b) => {
       const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -244,12 +233,10 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
     });
   }, [rawReviews, sortOrder]);
 
-  // Si viene limit (ej. destacadas), se aplica y NO paginamos
   const limitedReviews = useMemo(() => {
     return limit ? sortedReviews.slice(0, limit) : sortedReviews;
   }, [sortedReviews, limit]);
 
-  // Paginación solo cuando NO hay limit
   const totalPages = useMemo(() => {
     if (limit) return 1;
     return Math.max(1, Math.ceil(limitedReviews.length / pageSize));
@@ -257,7 +244,6 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
 
   const paginatedReviews = useMemo(() => {
     if (limit) return limitedReviews;
-
     const safePage = Math.min(Math.max(page, 1), totalPages);
     const start = (safePage - 1) * pageSize;
     const end = start + pageSize;
@@ -268,66 +254,65 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
-    <section className="py-24 bg-[#e9e4d5] border-t border-stone-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <p className="text-amber-900 font-bold tracking-[0.4em] uppercase text-xs mb-3 font-sans">
+    <section className="py-12 md:py-24 bg-[#e9e4d5] border-t border-stone-300 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-10 md:mb-16">
+          <p className="text-amber-900 font-bold tracking-[0.4em] uppercase text-[10px] mb-3 font-sans">
             MyBookCompass 
           </p>
-          <h2 className="text-4xl font-serif font-black text-stone-900 italic flex items-center justify-center">
-            <BookOpen className="w-8 h-8 mr-4 text-amber-800 opacity-80" />
+          {/* TÍTULO RESPONSIVO: Se ajusta el tamaño en móvil (text-2xl) para que no se corte */}
+          <h2 className="text-2xl md:text-4xl font-serif font-black text-stone-900 italic flex items-center justify-center break-words px-2">
+            <BookOpen className="hidden sm:block w-8 h-8 mr-4 text-amber-800 opacity-80" />
             {title}
           </h2>
-          <div className="h-1 w-24 bg-amber-800 mx-auto mt-6 shadow-sm"></div>
+          <div className="h-1 w-20 md:w-24 bg-amber-800 mx-auto mt-6 shadow-sm"></div>
         </div>
 
-        {/* Orden + paginación solo en página completa */}
         {!limit && !loading && (
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
-            <div className="text-stone-600 text-xs uppercase tracking-widest font-bold">
+          /* CONTROLES RESPONSIVOS: flex-wrap permite que bajen si no caben */
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 border-b border-stone-300/50 pb-8">
+            <div className="text-stone-600 text-[10px] uppercase tracking-widest font-bold">
               Total: {limitedReviews.length} reseñas
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
-                className="border border-stone-300 bg-[#fdfcf8] px-4 py-2 text-xs uppercase tracking-widest font-bold text-stone-700"
-                aria-label="Ordenar reseñas"
+                className="border border-stone-300 bg-[#fdfcf8] px-3 py-2 text-[10px] uppercase tracking-widest font-bold text-stone-700 focus:ring-1 focus:ring-amber-700 outline-none"
               >
                 <option value="newest">Más recientes</option>
                 <option value="oldest">Más antiguas</option>
               </select>
 
-              {/* Controles paginación (arriba) */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={goPrev}
                   disabled={page <= 1}
-                  className={`flex items-center gap-1 px-3 py-2 text-xs uppercase tracking-widest font-black border ${
+                  className={`flex items-center gap-1 px-3 py-2 text-[10px] uppercase tracking-widest font-black border transition-colors ${
                     page <= 1
                       ? "bg-stone-200 text-stone-400 border-stone-300 cursor-not-allowed"
                       : "bg-[#fdfcf8] text-stone-700 border-stone-300 hover:border-amber-800 hover:text-amber-900"
                   }`}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Anterior
+                  <span className="hidden xs:block">Anterior</span>
                 </button>
 
-                <div className="text-xs uppercase tracking-widest font-bold text-stone-700">
-                  Página {page} de {totalPages}
+                <div className="text-[10px] uppercase tracking-widest font-bold text-stone-700 px-2">
+                  {page} / {totalPages}
                 </div>
 
                 <button
                   onClick={goNext}
                   disabled={page >= totalPages}
-                  className={`flex items-center gap-1 px-3 py-2 text-xs uppercase tracking-widest font-black border ${
+                  className={`flex items-center gap-1 px-3 py-2 text-[10px] uppercase tracking-widest font-black border transition-colors ${
                     page >= totalPages
                       ? "bg-stone-200 text-stone-400 border-stone-300 cursor-not-allowed"
                       : "bg-[#fdfcf8] text-stone-700 border-stone-300 hover:border-amber-800 hover:text-amber-900"
                   }`}
                 >
-                  Siguiente
+                  <span className="hidden xs:block">Siguiente</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -339,12 +324,12 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-900 mb-4"></div>
             <p className="text-amber-900 font-serif italic text-xl">
-              Consultando los anaqueles...
+              Consultando anaqueles...
             </p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
               {paginatedReviews.map((review) => (
                 <ReviewCard key={review.id} review={review} />
               ))}
@@ -353,39 +338,6 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
             {!paginatedReviews.length && (
               <div className="text-center mt-12 text-stone-600 font-serif italic">
                 No hay reseñas para mostrar.
-              </div>
-            )}
-
-            {/* Controles paginación (abajo) */}
-            {!limit && totalPages > 1 && (
-              <div className="flex items-center justify-center gap-3 mt-14">
-                <button
-                  onClick={goPrev}
-                  disabled={page <= 1}
-                  className={`px-4 py-2 text-xs uppercase tracking-widest font-black border ${
-                    page <= 1
-                      ? "bg-stone-200 text-stone-400 border-stone-300 cursor-not-allowed"
-                      : "bg-[#fdfcf8] text-stone-700 border-stone-300 hover:border-amber-800 hover:text-amber-900"
-                  }`}
-                >
-                  Anterior
-                </button>
-
-                <div className="text-xs uppercase tracking-widest font-bold text-stone-700">
-                  Página {page} de {totalPages}
-                </div>
-
-                <button
-                  onClick={goNext}
-                  disabled={page >= totalPages}
-                  className={`px-4 py-2 text-xs uppercase tracking-widest font-black border ${
-                    page >= totalPages
-                      ? "bg-stone-200 text-stone-400 border-stone-300 cursor-not-allowed"
-                      : "bg-[#fdfcf8] text-stone-700 border-stone-300 hover:border-amber-800 hover:text-amber-900"
-                  }`}
-                >
-                  Siguiente
-                </button>
               </div>
             )}
           </>
@@ -399,7 +351,7 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
 const ReviewsPage = ({ limit }) => {
   return (
     <RecentReviewsSection
-      title={limit ? "Reseñas Destacadas" : "Todas las Reseñas de MyBookCompass"}
+      title={limit ? "Reseñas Destacadas" : "Todas las Reseñas"}
       limit={limit}
     />
   );
