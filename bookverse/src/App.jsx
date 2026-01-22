@@ -43,6 +43,8 @@ import MyReviewsPage from "./pages/MyReviewsPage.jsx";
 import EditProfilePage from "./pages/EditProfilePage.jsx";
 import FindBookPage from "./pages/FindBookPage.jsx";
 import MyFavoritesPage from "./pages/MyFavoritesPage.jsx";
+import VerifyEmail from "./pages/VerifyEmail";
+
 
 // 🔐 ADMIN
 import AdminRoute from "./components/AdminRoute.jsx";
@@ -73,6 +75,8 @@ function App() {
           <Route path="editar-perfil" element={<EditProfilePage />} />
           <Route path="encuentra-tu-libro" element={<FindBookPage />} />
           <Route path="mis-favoritos" element={<MyFavoritesPage />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
+
 
           {/* 🔐 SOLO ADMIN */}
           <Route element={<AdminRoute />}>
