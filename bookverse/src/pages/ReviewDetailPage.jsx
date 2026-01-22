@@ -189,7 +189,7 @@ const ReviewDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { authUser, openModal } = useOutletContext();
+  const { authUser, openModal, isAdmin} = useOutletContext();
 
   const [review, setReview] = useState(null);
   const [revealed, setRevealed] = useState(false);
@@ -298,6 +298,7 @@ const ReviewDetailPage = () => {
         },
       });
 
+  
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
 
@@ -308,6 +309,33 @@ const ReviewDetailPage = () => {
       alert(error.message || "Error eliminando reseña");
     }
   };
+      const handleAdminDeleteReview = async () => {
+  if (
+    !window.confirm(
+      "⚠️ ADMIN: ¿Eliminar esta reseña permanentemente? Esta acción no se puede deshacer."
+    )
+  )
+    return;
+
+  try {
+    const response = await fetch(`${API_URL}/api/reviews/admin/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
+
+    alert("Reseña eliminada por administrador.");
+    navigate("/");
+  } catch (error) {
+    console.error(error);
+    alert(error.message || "Error eliminando reseña");
+  }
+};
 
   const handleUpdateReview = async () => {
     try {
@@ -544,7 +572,8 @@ const ReviewDetailPage = () => {
                 {(review.views_count ?? 0).toLocaleString("es-MX")} vistas
               </div>
 
-              {authUser?.id === review.usuarios_id && !isEditingReview && (
+              {!isEditingReview && (authUser?.id === review.usuarios_id || isAdmin) && (
+
                 <div className="flex gap-4 w-full md:w-auto md:ml-auto pt-4 md:pt-0">
                   <button
                     onClick={() => setIsEditingReview(true)}
@@ -553,13 +582,15 @@ const ReviewDetailPage = () => {
                   >
                     <Edit2 className="w-3 h-3" /> Editar Crónica
                   </button>
-                  <button
-                    onClick={handleDeleteFullReview}
-                    className="flex items-center gap-1 text-red-800 hover:underline font-bold"
-                    type="button"
-                  >
-                    <Trash2 className="w-3 h-3" /> Eliminar
-                  </button>
+                 <button
+  onClick={isAdmin ? handleAdminDeleteReview : handleDeleteFullReview}
+  className="flex items-center gap-1 text-red-800 hover:underline font-bold"
+  type="button"
+>
+  <Trash2 className="w-3 h-3" />
+  {isAdmin ? "Eliminar (Admin)" : "Eliminar"}
+</button>
+
                 </div>
               )}
             </div>

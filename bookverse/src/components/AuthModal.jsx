@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { UserPlus, LogIn, Mail, Lock, CheckCircle, XCircle } from "lucide-react";
 import API_URL from "../config";
+import { useNavigate } from "react-router-dom";
+
 
 const AuthModal = ({
   isOpen,
@@ -16,6 +18,8 @@ const AuthModal = ({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
 
   const resetForm = useCallback(() => {
     setEmail("");
@@ -69,28 +73,35 @@ const AuthModal = ({
       }
 
       // ✅ LOGIN OK
-      const user = data?.user ?? null;
+     // ✅ LOGIN OK
+const user = data?.user ?? null;
 
-      // ✅ Guardar token si el backend lo manda (fallback para móvil/tablet)
-      // (si no viene, no rompe nada)
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
-      }
+// ✅ Guardar token si el backend lo manda
+if (data?.token) {
+  localStorage.setItem("token", data.token);
+}
 
-      setAuthMessage({
-        type: "success",
-        text: `Bienvenido, ${user?.name || "Usuario"}.`,
-      });
+setAuthMessage({
+  type: "success",
+  text: `Bienvenido, ${user?.name || "Usuario"}.`,
+});
 
-      // ✅ intentamos refrescar sesión real (cookie)
-      if (typeof checkSession === "function") {
-        const sessionUser = await checkSession();
-        setAuthUser(sessionUser || user || null);
-      } else {
-        setAuthUser(user || null);
-      }
+// ✅ refrescar sesión real
+let finalUser = user;
+if (typeof checkSession === "function") {
+  finalUser = await checkSession();
+}
 
-      setTimeout(() => onClose(), 800);
+setAuthUser(finalUser || null);
+
+// ✅ REDIRECCIÓN SEGÚN ROL
+if (finalUser?.rol === "admin") {
+  onClose();
+  navigate("/admin");
+} else {
+  setTimeout(() => onClose(), 600);
+}
+
     } catch (error) {
       console.error("Error de conexión:", error);
       setAuthMessage({

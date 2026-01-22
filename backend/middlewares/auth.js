@@ -1,11 +1,10 @@
 import jwt from "jsonwebtoken";
+import pool from "../config/db.js";
 
-export function auth(req, res, next) {
+export async function auth(req, res, next) {
   try {
-    // 1️⃣ Intentar desde cookie (desktop)
     let token = req.cookies?.token;
 
-    // 2️⃣ Fallback: Authorization header (mobile/tablet)
     if (!token) {
       const authHeader = req.headers.authorization || "";
       if (authHeader.startsWith("Bearer ")) {
@@ -13,19 +12,29 @@ export function auth(req, res, next) {
       }
     }
 
-    // 3️⃣ Si sigue sin token → no autenticado
     if (!token) {
       return res.status(401).json({ error: "No autenticado." });
     }
 
-    // 4️⃣ Verificar JWT
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = payload.id;
 
-    // payload esperado: { id, name, email, iat, exp }
-    req.user = payload;
+    // 🔥 CONSULTAR BD PARA TRAER EL ROL
+    const result = await pool.query(
+      "SELECT id, name, email, rol FROM usuarios WHERE id = $1",
+      [userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: "Usuario no válido." });
+    }
+
+    // ✅ AQUÍ YA VIENE EL ROL
+    req.user = result.rows[0];
 
     next();
   } catch (error) {
+    console.error("Auth error:", error.message);
     return res.status(401).json({ error: "Token inválido o expirado." });
   }
 }

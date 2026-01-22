@@ -5,6 +5,8 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import Groq from "groq-sdk";
 import { auth } from "../middlewares/auth.js";
+import { isAdmin } from "../middlewares/isAdmin.js";
+
 
 const router = express.Router();
 
@@ -819,5 +821,33 @@ router.put("/notifications/read-all/me", auth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// 🧨 ADMIN: borrar cualquier reseña
+router.delete("/admin/:id", auth, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const exists = await pool.query(
+      "SELECT id FROM reviews WHERE id = $1",
+      [id]
+    );
+
+    if (exists.rowCount === 0) {
+      return res.status(404).json({ error: "Reseña no encontrada" });
+    }
+
+    // borrar dependencias primero
+    await pool.query("DELETE FROM comments WHERE review_id = $1", [id]);
+    await pool.query("DELETE FROM favoritos WHERE review_id = $1", [id]);
+
+    await pool.query("DELETE FROM reviews WHERE id = $1", [id]);
+
+    res.json({ success: true, message: "Reseña eliminada por admin" });
+  } catch (error) {
+    console.error("Admin delete error:", error);
+    res.status(500).json({ error: "Error eliminando reseña" });
+  }
+});
+
 
 export default router;

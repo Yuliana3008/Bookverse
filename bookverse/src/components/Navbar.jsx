@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Clock,
   CheckCheck,
+  BookOpen,
   BookText,
   Menu,
   X,
@@ -51,7 +52,7 @@ const NavItem = ({ item, onClick, isCurrentPage, isMobile = false }) => {
   );
 };
 
-const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) => {
+const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handleLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -354,6 +355,16 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                       >
                         <UserPlus className="w-4 h-4 mr-2" /> Editar Perfil
                       </Link>
+                          
+                          {isAdmin && (
+  <Link
+    to="/admin"
+    onClick={() => setIsDropdownOpen(false)}
+    className="w-full text-left px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 font-semibold flex items-center transition"
+  >
+    <BookOpen className="w-4 h-4 mr-2" /> Panel Admin
+  </Link>
+)}
 
                       <hr className="border-stone-100" />
 
@@ -468,6 +479,17 @@ const Navbar = ({ isAuthenticated, userName, userId, openModal, handleLogout }) 
                     <UserPlus className="w-4 h-4 mr-1.5 text-amber-600" /> Editar Perfil
                   </Link>
                   <hr className="my-2 border-stone-200" />
+                  {isAdmin && (
+  <Link
+    to="/admin"
+    onClick={closeMobileMenu}
+    className="flex items-center py-3 px-4 text-amber-700 hover:bg-amber-50 rounded-lg transition font-semibold"
+  >
+    <BookOpen className="w-4 h-4 mr-1.5" /> Panel Admin
+  </Link>
+)}
+
+
                   <button
                     onClick={() => {
                       handleLogout();

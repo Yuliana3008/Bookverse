@@ -21,6 +21,7 @@ const BookVerseLayout = () => {
   const [isReady, setIsReady] = useState(false);
 
   const isAuthenticated = !!authUser;
+  const isAdmin = authUser?.rol === "admin";
   const userName = authUser?.name || "Usuario";
   const userId = authUser?.id ?? null;
 
@@ -225,6 +226,7 @@ const BookVerseLayout = () => {
     <div className="min-h-screen font-serif bg-[#f4f1ea] selection:bg-amber-200">
       <Navbar
         isAuthenticated={isAuthenticated}
+         isAdmin={isAdmin}
         userName={userName}
         userId={userId}
         openModal={openModal}
@@ -265,6 +267,7 @@ const BookVerseLayout = () => {
         <Outlet
           context={{
             isAuthenticated,
+            isAdmin, 
             authUser,
             userName,
             userId,

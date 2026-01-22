@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cookieParser from "cookie-parser";
+import adminRoutes from "./routes/admin.routes.js";
+
 
 import "./config/db.js";
 import authRoutes from "./routes/auth.js";
@@ -107,6 +109,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin", adminRoutes);
 
 // 404
 app.use((req, res) => {
