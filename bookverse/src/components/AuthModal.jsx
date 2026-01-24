@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { UserPlus, LogIn, Mail, Lock, CheckCircle, XCircle } from "lucide-react";
+// ✅ Agregamos Eye y EyeOff a las importaciones
+import { UserPlus, LogIn, Mail, Lock, CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
 import API_URL from "../config";
 import { useNavigate } from "react-router-dom";
-
 
 const AuthModal = ({
   isOpen,
@@ -18,18 +18,36 @@ const AuthModal = ({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  
+  // ✅ NUEVO: Visibilidad de contraseña
+  const [showPassword, setShowPassword] = useState(false);
 
+  const [passwordStrength, setPasswordStrength] = useState("weak");
+
+  const navigate = useNavigate();
 
   const resetForm = useCallback(() => {
     setEmail("");
     setPassword("");
     setName("");
+    setPasswordStrength("weak");
+    setShowPassword(false); // Resetear visibilidad al cerrar
   }, []);
 
   useEffect(() => {
     if (!isOpen) resetForm();
   }, [isOpen, resetForm]);
+
+  const evaluatePasswordStrength = (value) => {
+    const strongRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+    const mediumRegex =
+      /^(?=.*[a-z])(?=.*\d).{6,}$/;
+
+    if (strongRegex.test(value)) return "strong";
+    if (mediumRegex.test(value)) return "medium";
+    return "weak";
+  };
 
   const handleAuthAction = async (e) => {
     e.preventDefault();
@@ -37,9 +55,14 @@ const AuthModal = ({
     setAuthMessage(null);
 
     const endpoint =
-      mode === "register" ? `${API_URL}/api/auth/register` : `${API_URL}/api/auth/login`;
+      mode === "register"
+        ? `${API_URL}/api/auth/register`
+        : `${API_URL}/api/auth/login`;
 
-    const payload = mode === "register" ? { name, email, password } : { email, password };
+    const payload =
+      mode === "register"
+        ? { name, email, password }
+        : { email, password };
 
     try {
       const response = await fetch(endpoint, {
@@ -62,46 +85,39 @@ const AuthModal = ({
         return;
       }
 
-      // ✅ REGISTER OK
       if (mode === "register") {
         setAuthMessage({
           type: "success",
-          text: "¡Cuenta creada! Ya puedes ingresar.",
+          text: "¡Cuenta creada! Revisa tu correo para confirmarla.",
         });
         setMode("login");
         return;
       }
 
-      // ✅ LOGIN OK
-     // ✅ LOGIN OK
-const user = data?.user ?? null;
+      const user = data?.user ?? null;
 
-// ✅ Guardar token si el backend lo manda
-if (data?.token) {
-  localStorage.setItem("token", data.token);
-}
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
+      }
 
-setAuthMessage({
-  type: "success",
-  text: `Bienvenido, ${user?.name || "Usuario"}.`,
-});
+      setAuthMessage({
+        type: "success",
+        text: `Bienvenido, ${user?.name || "Usuario"}.`,
+      });
 
-// ✅ refrescar sesión real
-let finalUser = user;
-if (typeof checkSession === "function") {
-  finalUser = await checkSession();
-}
+      let finalUser = user;
+      if (typeof checkSession === "function") {
+        finalUser = await checkSession();
+      }
 
-setAuthUser(finalUser || null);
+      setAuthUser(finalUser || null);
 
-// ✅ REDIRECCIÓN SEGÚN ROL
-if (finalUser?.rol === "admin") {
-  onClose();
-  navigate("/admin");
-} else {
-  setTimeout(() => onClose(), 600);
-}
-
+      if (finalUser?.rol === "admin") {
+        onClose();
+        navigate("/admin");
+      } else {
+        setTimeout(() => onClose(), 600);
+      }
     } catch (error) {
       console.error("Error de conexión:", error);
       setAuthMessage({
@@ -136,7 +152,10 @@ if (finalUser?.rol === "admin") {
               {isLogin ? "Bienvenido" : "Nueva Cuenta"}
             </h2>
           </div>
-          <button onClick={onClose} className="text-stone-400 hover:text-amber-800 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-stone-400 hover:text-amber-800 transition-colors"
+          >
             <XCircle className="w-6 h-6" />
           </button>
         </div>
@@ -167,13 +186,13 @@ if (finalUser?.rol === "admin") {
                 Nombre Completo
               </label>
               <div className="relative group">
-                <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-amber-700 transition-colors" />
+                <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                 <input
                   type="text"
                   placeholder="Tu nombre"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 focus:border-amber-600 focus:ring-0 transition-all font-serif outline-none"
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 font-serif outline-none"
                   required
                   disabled={isLoading}
                 />
@@ -186,13 +205,13 @@ if (finalUser?.rol === "admin") {
               Correo Electrónico
             </label>
             <div className="relative group">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-amber-700 transition-colors" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
               <input
                 type="email"
                 placeholder="usuario@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 focus:border-amber-600 focus:ring-0 transition-all font-serif outline-none"
+                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 font-serif outline-none"
                 required
                 disabled={isLoading}
               />
@@ -204,33 +223,87 @@ if (finalUser?.rol === "admin") {
               Contraseña
             </label>
             <div className="relative group">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-amber-700 transition-colors" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"} // ✅ Tipo dinámico
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 focus:border-amber-600 focus:ring-0 transition-all font-serif outline-none"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordStrength(evaluatePasswordStrength(e.target.value));
+                }}
+                className="w-full pl-10 pr-12 py-3 bg-stone-50 border border-stone-200 font-serif outline-none"
                 required
-                minLength={6}
                 disabled={isLoading}
               />
+              {/* ✅ Botón de ojo para mostrar/ocultar */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-amber-800 transition-colors"
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
+
+            {mode === "register" && password.length > 0 && (
+              <p
+                className={`mt-2 text-xs italic font-serif ${
+                  passwordStrength === "strong"
+                    ? "text-green-700"
+                    : passwordStrength === "medium"
+                    ? "text-amber-700"
+                    : "text-red-700"
+                }`}
+              >
+                {passwordStrength === "strong"
+                  ? "Contraseña segura"
+                  : passwordStrength === "medium"
+                  ? "Contraseña aceptable (mejorable)"
+                  : "Debe incluir mayúsculas, minúsculas, número y carácter especial"}
+              </p>
+            )}
+
+            {mode === "register" && (
+              <p className="mt-1 text-xs italic font-serif text-stone-500">
+                La contraseña debe tener al menos 8 caracteres, incluir mayúsculas,
+                minúsculas, un número y un carácter especial.
+              </p>
+            )}
           </div>
+
+          {isLogin && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate("/forgot-password");
+                }}
+                className="text-xs italic text-amber-800 hover:text-stone-900 underline underline-offset-4"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
-            className="w-full bg-stone-900 hover:bg-amber-800 text-white font-serif italic text-lg py-4 shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center group"
-            disabled={isLoading}
+            className="w-full bg-stone-900 hover:bg-amber-800 text-white font-serif italic text-lg py-4 shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center"
+            disabled={
+              isLoading ||
+              (mode === "register" && passwordStrength !== "strong")
+            }
           >
             {isLoading ? (
               <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
                 {isLogin ? (
-                  <LogIn className="w-5 h-5 mr-3 group-hover:translate-x-1 transition-transform" />
+                  <LogIn className="w-5 h-5 mr-3" />
                 ) : (
-                  <UserPlus className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
+                  <UserPlus className="w-5 h-5 mr-3" />
                 )}
                 {isLogin ? "Entrar a la Biblioteca" : "Unirse a la Comunidad"}
               </>
@@ -243,7 +316,7 @@ if (finalUser?.rol === "admin") {
             {isLogin ? "¿Aún no eres miembro?" : "¿Ya tienes una cuenta?"}
             <button
               onClick={() => setMode(isLogin ? "register" : "login")}
-              className="text-amber-800 hover:text-stone-900 font-bold ml-2 underline underline-offset-4 decoration-amber-800/30 hover:decoration-amber-800 transition-all"
+              className="text-amber-800 font-bold ml-2 underline underline-offset-4"
               disabled={isLoading}
               type="button"
             >

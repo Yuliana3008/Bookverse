@@ -44,6 +44,9 @@ import EditProfilePage from "./pages/EditProfilePage.jsx";
 import FindBookPage from "./pages/FindBookPage.jsx";
 import MyFavoritesPage from "./pages/MyFavoritesPage.jsx";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+
 
 
 // 🔐 ADMIN
@@ -76,6 +79,9 @@ function App() {
           <Route path="encuentra-tu-libro" element={<FindBookPage />} />
           <Route path="mis-favoritos" element={<MyFavoritesPage />} />
           <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+
 
 
           {/* 🔐 SOLO ADMIN */}
