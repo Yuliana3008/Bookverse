@@ -522,7 +522,7 @@ router.post("/recommend", async (req, res) => {
 
 "${userDescription}"
 
-Recomienda EXACTAMENTE 2 libros que coincidan con esta descripción.
+Recomienda EXACTAMENTE 5 libros que coincidan con esta descripción.
 Responde ÚNICAMENTE en formato JSON sin texto adicional:
 {
   "libros": [
@@ -532,7 +532,8 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
       "isbn": "ISBN si lo conoces, sino null",
       "genero": "Género literario",
       "anio": 2024,
-      "razon": "Breve explicación de por qué este libro coincide (máximo 100 palabras)"
+      "razon": "Breve explicación de por qué este libro coincide (máximo 300 palabras)"
+      
     }
   ]
 }`;

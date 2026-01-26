@@ -120,7 +120,7 @@ router.post("/login", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, name, email, password_hash, email_verified
+      `SELECT id, name, email, password_hash, email_verified, activo, rol
        FROM usuarios
        WHERE email = $1`,
       [email]
@@ -129,8 +129,15 @@ router.post("/login", async (req, res) => {
     if (result.rowCount === 0) {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     }
+      const user = result.rows[0];
+    // 🚫 Bloquear si el usuario está desactivado
+if (!user.activo) {
+  return res.status(403).json({
+    error: "Tu cuenta ha sido bloqueada por un administrador.",
+  });
+}
 
-    const user = result.rows[0];
+    
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
@@ -145,7 +152,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, name: user.name, email: user.email },
+      { id: user.id, name: user.name, email: user.email,  rol: user.rol, },
       process.env.JWT_SECRET,
       { expiresIn: "2h" }
     );
@@ -174,9 +181,35 @@ router.post("/login", async (req, res) => {
 /* =========================================================
    👤 SESIÓN ACTUAL
 ========================================================= */
-router.get("/me", auth, (req, res) => {
-  res.json({ user: req.user });
+router.get("/me", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, rol, activo
+       FROM usuarios
+       WHERE id = $1`,
+      [req.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: "Usuario no encontrado" });
+    }
+
+    const user = result.rows[0];
+
+    // 🚫 Usuario bloqueado → forzar logout
+    if (!user.activo) {
+      return res.status(403).json({
+        error: "Tu cuenta ha sido bloqueada por un administrador",
+      });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error("Error en /me:", err);
+    res.status(500).json({ error: "Error interno" });
+  }
 });
+
 
 /* =========================================================
    🚪 LOGOUT
