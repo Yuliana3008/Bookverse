@@ -171,7 +171,7 @@ const FindBookPage = () => {
               {recommendations.map((rec, index) => (
                 <div
                   key={index}
-                  onClick={() => rec.enBD && handleViewReview(rec.detalles.isbn || rec.detalles.id)}
+                  onClick={() => rec.enBD && handleViewReview(rec.reviews[0].id)}
                   className={`bg-[#f4f1ea] border border-stone-300 shadow-xl relative group hover:border-amber-800 transition-all duration-300 ${rec.enBD ? 'cursor-pointer' : ''}`}
                 >
                   {/* Left accent bar */}
@@ -274,7 +274,7 @@ const FindBookPage = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewReview(rec.detalles.isbn || rec.detalles.id);
+                            handleViewReview(rec.reviews[0].id);
                           }}
                           className="flex-1 bg-amber-900 text-[#f4f1ea] py-3 md:py-4 px-4 md:px-6 font-bold tracking-wider uppercase hover:bg-black transition-all duration-300 border-2 border-amber-950 flex items-center justify-center gap-2 text-xs md:text-sm"
                         >
@@ -283,7 +283,7 @@ const FindBookPage = () => {
                         </button>
                       ) : (
                         <div className="flex-1 bg-stone-200 text-stone-500 py-3 md:py-4 px-4 md:px-6 font-bold tracking-wider uppercase border-2 border-stone-300 cursor-not-allowed text-center text-xs md:text-sm">
-                          No Disponible en el Archivo
+                          No Disponible en MyBookCompass
                         </div>
                       )}
                     </div>
