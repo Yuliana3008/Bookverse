@@ -11,23 +11,18 @@ import API_URL from "../config";
 const BookVerseLayout = () => {
   const navigate = useNavigate();
 
-  // ✅ Sesión real
   const [authUser, setAuthUser] = useState(null);
-
-  // UI states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [authMessage, setAuthMessage] = useState(null);
   const [isReady, setIsReady] = useState(false);
-
   const isAuthenticated = !!authUser;
   const isAdmin = authUser?.rol === "admin";
   const userName = authUser?.name || "Usuario";
   const userId = authUser?.id ?? null;
-
   const socketRef = useRef(null);
 
-  // ✅ helper: leer token local (fallback para móvil/tablet)
+ 
   const getLocalToken = () => {
     try {
       return localStorage.getItem("token") || null;
@@ -36,15 +31,11 @@ const BookVerseLayout = () => {
     }
   };
 
-  /**
-   * ✅ checkSession:
-   * 1) intenta con cookie (credentials)
-   * 2) si falla, intenta con Authorization Bearer token (localStorage)
-   */
+  
   const checkSession = useCallback(async () => {
     const url = `${API_URL}/api/auth/me`;
 
-    // 1) COOKIE
+   
     try {
       const res = await fetch(url, {
         method: "GET",
@@ -59,10 +50,10 @@ const BookVerseLayout = () => {
         return user;
       }
     } catch (e) {
-      // seguimos al fallback
+      
     }
 
-    // 2) BEARER TOKEN (fallback)
+    
     try {
       const token = getLocalToken();
       if (!token) {
@@ -72,7 +63,7 @@ const BookVerseLayout = () => {
 
       const res2 = await fetch(url, {
         method: "GET",
-        credentials: "include", // ok dejarlo, no estorba
+        credentials: "include", 
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
@@ -96,7 +87,6 @@ const BookVerseLayout = () => {
 
   const refreshSession = checkSession;
 
-  // ✅ Check inicial
   useEffect(() => {
     let mounted = true;
 
@@ -110,7 +100,7 @@ const BookVerseLayout = () => {
     };
   }, [checkSession]);
 
-  // ✅ Auto-limpiar notificaciones
+  
   useEffect(() => {
     if (!authMessage) return;
     const t = setTimeout(() => setAuthMessage(null), 5000);
@@ -127,7 +117,7 @@ const BookVerseLayout = () => {
     setAuthMessage(null);
   };
 
-  // ✅ Logout: borra cookie + token local
+  
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
@@ -157,16 +147,10 @@ const BookVerseLayout = () => {
     console.log("Editar perfil - Usuario:", authUser);
   };
 
-  /* =========================================================
-      ✅ SOCKET.IO
-  ========================================================= */
-
   useEffect(() => {
     if (!isReady) return;
     if (socketRef.current) return;
 
-    // 👇 Importante: en deploy, Socket debe apuntar al BACKEND (Render)
-    // y NO al frontend (Vercel)
     const socket = io(API_URL, {
       withCredentials: true,
       transports: ["websocket", "polling"],
@@ -216,7 +200,7 @@ const BookVerseLayout = () => {
           <BookOpen className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-amber-900 w-6 h-6" />
         </div>
         <p className="mt-6 text-stone-800 font-serif italic text-xl">
-          Abriendo los archivos de BookVerse...
+          Abriendo las reseñas de MyBookCompass...
         </p>
       </div>
     );

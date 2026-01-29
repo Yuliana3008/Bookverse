@@ -4,11 +4,9 @@ import { useOutletContext } from "react-router-dom";
 import API_URL from "../config";
 
 const AddReviewPage = () => {
-  // I. CONTEXTO DEL LAYOUT
   const { isAuthenticated, setAuthMessage, openModal, checkSession } =
     useOutletContext();
 
-  // II. ESTADO DEL FORMULARIO
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [rating, setRating] = useState(0);
@@ -17,7 +15,6 @@ const AddReviewPage = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Manejar selección de archivo
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -26,7 +23,6 @@ const AddReviewPage = () => {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  // III. ENVÍO
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -109,7 +105,6 @@ const AddReviewPage = () => {
     }
   };
 
-  // IV. VERIFICACIÓN DE AUTENTICACIÓN
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center py-12 md:py-24 min-h-screen text-center bg-[#e9e4d5] px-4">
@@ -132,7 +127,6 @@ const AddReviewPage = () => {
     );
   }
 
-  // V. RENDER ESTRELLAS (Tamaño ajustado para móvil)
   const renderStars = () => {
     return [1, 2, 3, 4, 5].map((starValue) => (
       <Star

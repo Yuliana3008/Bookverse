@@ -1,7 +1,4 @@
-// src/components/Footer.jsx
-
 import React from 'react';
-// Importamos solo los íconos que usa el Footer
 import { BookOpen, Home, Info, BookA, Phone, Mail, BookText } from 'lucide-react';
 
 const Footer = () => (

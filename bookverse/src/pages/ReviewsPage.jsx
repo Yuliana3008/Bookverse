@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import API_URL from "../config";
 
-/* ===================== CARD ===================== */
 const ReviewCard = ({ review }) => {
   const [revealed, setRevealed] = useState(false);
 
@@ -171,7 +170,6 @@ const ReviewCard = ({ review }) => {
   );
 };
 
-/* ===================== SECTION ===================== */
 export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
   const [rawReviews, setRawReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -260,7 +258,7 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
           <p className="text-amber-900 font-bold tracking-[0.4em] uppercase text-[10px] mb-3 font-sans">
             MyBookCompass 
           </p>
-          {/* TÍTULO RESPONSIVO: Se ajusta el tamaño en móvil (text-2xl) para que no se corte */}
+          {/* TÍTULO RESPONSIV*/}
           <h2 className="text-2xl md:text-4xl font-serif font-black text-stone-900 italic flex items-center justify-center break-words px-2">
             <BookOpen className="hidden sm:block w-8 h-8 mr-4 text-amber-800 opacity-80" />
             {title}
@@ -269,7 +267,7 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
         </div>
 
         {!limit && !loading && (
-          /* CONTROLES RESPONSIVOS: flex-wrap permite que bajen si no caben */
+          /* CONTROLES RESPONSIVO */
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 border-b border-stone-300/50 pb-8">
             <div className="text-stone-600 text-[10px] uppercase tracking-widest font-bold">
               Total: {limitedReviews.length} reseñas
@@ -347,7 +345,6 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
   );
 };
 
-/* ===================== PAGE WRAPPER ===================== */
 const ReviewsPage = ({ limit }) => {
   return (
     <RecentReviewsSection

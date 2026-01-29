@@ -107,7 +107,7 @@ const SearchPage = () => {
             </button>
           </form>
 
-          {/* BARRA DE FILTROS RESPONSIVA: Cambia a columna en móvil */}
+          {/* BARRA Responsiva*/}
           <div className="bg-stone-200/50 p-4 flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center px-5 border-t border-stone-300">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Filter className="w-4 h-4 text-amber-900 shrink-0" />

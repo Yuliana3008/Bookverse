@@ -20,28 +20,24 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ✅ Importante para deploy detrás de proxy (HTTPS)
+
 app.set("trust proxy", 1);
 
-/* =========================================================
-   ✅ ORÍGENES PERMITIDOS (LOCAL + DEPLOY)
-========================================================= */
+
 const allowedOrigins = [
   "http://localhost:5173",
-  "http://127.0.0.1:5173", // ✅ evita broncas IPv6/localhost
+  "http://127.0.0.1:5173", 
   "https://bookverse-git-main-yuliana-sanchezs-projects.vercel.app",
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
 ];
 
-/* =========================================================
-    CONFIGURACIÓN DE SOCKET.IO
-========================================================= */
+
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
-      // Permite sin origin (algunos clientes) o si está en whitelist
+    
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error(`Socket CORS bloqueado para el origen: ${origin}`));
@@ -51,7 +47,7 @@ const io = new Server(httpServer, {
   },
 });
 
-// Inyectar 'io' para usarlo en rutas
+
 app.set("io", io);
 
 io.on("connection", (socket) => {
@@ -67,15 +63,11 @@ io.on("connection", (socket) => {
   });
 });
 
-/* =========================================================
-    ✅ MIDDLEWARES (ORDEN IMPORTA)
-========================================================= */
 
-// ✅ CORS (con credentials)
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permitir requests sin origin (Postman/Insomnia)
+      
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error(`CORS bloqueado para el origen: ${origin}`));
@@ -86,20 +78,17 @@ app.use(
   })
 );
 
-// ✅ Preflight (muy importante con cookies)
+
 app.options(/.*/, cors());
 
 
-// ✅ JSON + Cookies
+
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Archivos estáticos
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* =========================================================
-    RUTAS
-========================================================= */
 app.get("/", (req, res) => {
   res.json({
     message: "🚀 Servidor de BookVerse con Sockets activo",
@@ -116,15 +105,13 @@ app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
 });
 
-// Error handler
+
 app.use((err, req, res, next) => {
   console.error("Error global:", err.message || err);
   res.status(500).json({ error: "Error interno del servidor" });
 });
 
-/* =========================================================
-    INICIO DEL SERVIDOR
-========================================================= */
+
 const PORT = process.env.PORT || 4000;
 
 httpServer.listen(PORT, () => {

@@ -5,9 +5,6 @@ import { isAdmin } from "../middlewares/isAdmin.js";
 
 const router = express.Router();
 
-/* =========================================================
-   👑 ADMIN – LISTAR USUARIOS
-========================================================= */
 router.get("/users", auth, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -23,9 +20,7 @@ router.get("/users", auth, isAdmin, async (req, res) => {
   }
 });
 
-/* =========================================================
-   👑 ADMIN – CAMBIAR ROL
-========================================================= */
+/*cambiar rol*/
 router.put("/users/:id/role", auth, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -41,10 +36,7 @@ router.put("/users/:id/role", auth, isAdmin, async (req, res) => {
     res.status(500).json({ error: "Error cambiando rol" });
   }
 });
-
-/* =========================================================
-   👑 ADMIN – BLOQUEAR / DESBLOQUEAR USUARIO
-========================================================= */
+/*bloquear, desbloquear usuario*/
 router.put("/users/:id/status", auth, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { activo } = req.body;
@@ -54,7 +46,6 @@ router.put("/users/:id/status", auth, isAdmin, async (req, res) => {
       return res.status(400).json({ error: "Estado inválido" });
     }
 
-    // 🚫 Evitar que el admin se bloquee a sí mismo
     if (req.user.id == id) {
       return res.status(403).json({
         error: "No puedes bloquear tu propio usuario",

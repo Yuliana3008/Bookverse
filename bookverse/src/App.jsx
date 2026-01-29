@@ -46,15 +46,10 @@ import MyFavoritesPage from "./pages/MyFavoritesPage.jsx";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
-
-
-
-// 🔐 ADMIN
 import AdminRoute from "./components/AdminRoute.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Forbidden from "./pages/Forbidden.jsx";
 import AdminUsersPage from "./pages/AdminUsersPage.jsx";
-// Utilidades
 import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
@@ -63,7 +58,7 @@ function App() {
       <ScrollToTop />
 
       <Routes>
-        {/* 🌍 Layout principal */}
+        {/* Layout principal */}
         <Route path="/" element={<BookVerseLayout />}>
           {/* Públicas */}
           <Route index element={<HomePage />} />
@@ -81,16 +76,12 @@ function App() {
           <Route path="verify-email" element={<VerifyEmail />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
-
-
-
-          {/* 🔐 SOLO ADMIN */}
+          {/*SOLO ADMIN */}
           <Route element={<AdminRoute />}>
-            <Route path="admin" element={<AdminDashboard />} />
-  <Route path="admin/usuarios" element={<AdminUsersPage />} />
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/usuarios" element={<AdminUsersPage />} />
           </Route>
-
-          {/* 🚫 ACCESO DENEGADO */}
+          {/*ACCESO DENEGADO */}
           <Route path="403" element={<Forbidden />} />
         </Route>
       </Routes>

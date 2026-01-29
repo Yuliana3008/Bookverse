@@ -12,7 +12,6 @@ const EditProfilePage = () => {
     email: authUser?.email || ''
   });
 
-  // ✅ Si authUser cambia (por /me), sincroniza el formulario
   useEffect(() => {
     setFormData({
       name: authUser?.name || '',
@@ -24,7 +23,6 @@ const EditProfilePage = () => {
     e.preventDefault();
     setAuthMessage(null);
 
-    // ✅ Si no hay usuario autenticado, manda a login
     if (!authUser) {
       setAuthMessage({ type: 'error', text: 'Debes iniciar sesión para editar tu perfil.' });
       return navigate('/');
@@ -37,11 +35,10 @@ const EditProfilePage = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include', // 🔑 IMPORTANTE para mandar la cookie
+        credentials: 'include', 
         body: JSON.stringify(formData),
       });
 
-      // ✅ Si la sesión expiró o no hay cookie
       if (response.status === 401) {
         setAuthMessage({ type: 'error', text: 'Tu sesión expiró. Inicia sesión de nuevo.' });
         if (handleLogout) handleLogout();
@@ -51,11 +48,11 @@ const EditProfilePage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // ✅ Actualiza el usuario en el estado global
+        
         const updatedUser = { ...authUser, ...data.user };
         setAuthUser(updatedUser);
 
-        // ✅ Ya no guardamos sesión en localStorage
+       
         setAuthMessage({ type: 'success', text: '¡Perfil actualizado con éxito!' });
         setTimeout(() => navigate('/'), 1200);
       } else {
@@ -63,7 +60,7 @@ const EditProfilePage = () => {
       }
 
     } catch (error) {
-      // ✅ Aquí ahora sí: error real (network/cors)
+      
       setAuthMessage({
         type: 'error',
         text: 'No se pudo conectar con el servidor. Intenta de nuevo.',

@@ -19,7 +19,7 @@ export async function auth(req, res, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const userId = payload.id;
 
-    // 🔥 CONSULTAR BD PARA TRAER EL ROL
+    // CONSULTAR BD PARA TRAER EL ROL
     const result = await pool.query(
       "SELECT id, name, email, rol FROM usuarios WHERE id = $1",
       [userId]
@@ -29,7 +29,6 @@ export async function auth(req, res, next) {
       return res.status(401).json({ error: "Usuario no válido." });
     }
 
-    // ✅ AQUÍ YA VIENE EL ROL
     req.user = result.rows[0];
 
     next();

@@ -10,9 +10,6 @@ import { isAdmin } from "../middlewares/isAdmin.js";
 
 const router = express.Router();
 
-/* =========================================================
-    1. CONFIGURACIÓN DE MIDDLEWARES Y CLIENTES
-========================================================= */
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -34,9 +31,6 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-/* =========================================================
-    2. LÓGICA DE ANÁLISIS CON GROQ AI
-========================================================= */
 
 async function analyzeReviewWithGroq(reviewText, bookTitle, bookAuthor) {
   try {
@@ -128,9 +122,6 @@ function detectGenreLocal(text) {
   return "General";
 }
 
-/* =========================================================
-    3. RUTAS DE BÚSQUEDA Y FILTRADO (PÚBLICA)
-========================================================= */
 
 router.get("/search", async (req, res) => {
   try {
@@ -172,11 +163,6 @@ router.get("/search", async (req, res) => {
   }
 });
 
-/* =========================================================
-    4. RUTAS CRUD DE RESEÑAS
-========================================================= */
-
-// ✅ Recientes (PÚBLICA)
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -191,10 +177,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-/* =========================================================
-    ✅ PRIVADA: MIS RESEÑAS (cookie)
-    GET /api/reviews/me
-========================================================= */
 router.get("/me", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -215,10 +197,6 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    ✅ PRIVADA: MIS FAVORITOS (cookie)
-    GET /api/reviews/favorites/me
-========================================================= */
 router.get("/favorites/me", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -239,9 +217,6 @@ router.get("/favorites/me", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    🔒 (LEGACY) PERFIL POR ID
-========================================================= */
 router.get("/user/:userId", auth, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -265,9 +240,6 @@ router.get("/user/:userId", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    ⚠️ DETALLE DE RESEÑA (PÚBLICA) + ✅ SUMA VISTAS
-========================================================= */
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
@@ -294,9 +266,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/* =========================================================
-    ✅ CREAR RESEÑA (PRIVADA)
-========================================================= */
+
 router.post("/", auth, upload.single("image"), async (req, res) => {
   const usuarios_id = req.user.id;
 
@@ -336,9 +306,6 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
   }
 });
 
-/* =========================================================
-    ✅ EDITAR RESEÑA (PRIVADA + DUEÑO)
-========================================================= */
 router.put("/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -367,9 +334,6 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    ✅ ELIMINAR RESEÑA (PRIVADA + DUEÑO)
-========================================================= */
 router.delete("/full/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -399,11 +363,7 @@ router.delete("/full/:id", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    5. COMENTARIOS + NOTIFICACIONES
-========================================================= */
 
-// Comentarios (PÚBLICO ver)
 router.get("/:id/comments", async (req, res) => {
   try {
     const { id } = req.params;
@@ -421,7 +381,6 @@ router.get("/:id/comments", async (req, res) => {
   }
 });
 
-// Crear comentario (PRIVADO)
 router.post("/:id/comments", auth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -447,9 +406,9 @@ router.post("/:id/comments", auth, async (req, res) => {
 
     const data = finalResult.rows[0];
 
-    // Notificación si no es tu propia reseña
+   
     if (Number(data.owner_id) !== Number(usuarios_id)) {
-      // ✅ guardar notificación y obtener id real
+      
       const notifInsert = await pool.query(
         `INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id)
          VALUES ($1, $2, 'comentario', $3)
@@ -462,7 +421,7 @@ router.post("/:id/comments", auth, async (req, res) => {
       const io = req.app.get("io");
       if (io) {
         io.to(`user_${data.owner_id}`).emit("nueva_notificacion", {
-          id: notif.id, // ✅ id real (ya no Math.random)
+          id: notif.id, 
           tipo: notif.tipo,
           emisor_nombre: data.user_name,
           book_title: data.book_title,
@@ -479,7 +438,7 @@ router.post("/:id/comments", auth, async (req, res) => {
   }
 });
 
-// Borrar comentario (PRIVADO dueño del comentario)
+
 router.delete("/comments/:commentId", auth, async (req, res) => {
   try {
     const { commentId } = req.params;
@@ -506,9 +465,6 @@ router.delete("/comments/:commentId", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    6. RECOMENDACIONES CON IA (PÚBLICA)
-========================================================= */
 
 router.post("/recommend", async (req, res) => {
   try {
@@ -634,11 +590,7 @@ Responde ÚNICAMENTE en formato JSON sin texto adicional:
   }
 });
 
-/* =========================================================
-    7. FAVORITOS (PRIVADO)
-========================================================= */
 
-// ✅ Check favorito (ruta correcta)
 router.get("/favorites/check/:reviewId", auth, async (req, res) => {
   try {
     const { reviewId } = req.params;
@@ -655,12 +607,11 @@ router.get("/favorites/check/:reviewId", auth, async (req, res) => {
   }
 });
 
-// ✅ Check favorito (compatibilidad con tu frontend viejo: /check/:userId/:reviewId)
+
 router.get("/favorites/check/:userId/:reviewId", auth, async (req, res) => {
   try {
     const { userId, reviewId } = req.params;
 
-    // seguridad: solo puedes checar tu propio userId
     if (Number(userId) !== Number(req.user.id)) {
       return res.status(403).json({ error: "No autorizado" });
     }
@@ -676,7 +627,6 @@ router.get("/favorites/check/:userId/:reviewId", auth, async (req, res) => {
   }
 });
 
-// ✅ Toggle favorito + NOTIFICACIÓN al dueño
 router.post("/favorites/toggle", auth, async (req, res) => {
   try {
     const usuarios_id = req.user.id;
@@ -691,7 +641,7 @@ router.post("/favorites/toggle", auth, async (req, res) => {
       [usuarios_id, review_id]
     );
 
-    // si existe -> quitar favorito (no notificamos)
+    
     if (exists.rowCount > 0) {
       await pool.query(
         "DELETE FROM favoritos WHERE usuarios_id = $1 AND review_id = $2",
@@ -700,13 +650,12 @@ router.post("/favorites/toggle", auth, async (req, res) => {
       return res.json({ message: "Eliminado de favoritos", isFavorite: false });
     }
 
-    // si no existe -> agregar favorito
+  
     await pool.query(
       "INSERT INTO favoritos (usuarios_id, review_id) VALUES ($1, $2)",
       [usuarios_id, review_id]
     );
 
-    // buscar dueño + título
     const ownerRes = await pool.query(
       `SELECT usuarios_id AS owner_id, book_title
        FROM reviews
@@ -717,16 +666,16 @@ router.post("/favorites/toggle", auth, async (req, res) => {
     if (ownerRes.rowCount > 0) {
       const { owner_id, book_title } = ownerRes.rows[0];
 
-      // no notificarte a ti mismo
+      
       if (Number(owner_id) !== Number(usuarios_id)) {
-        // nombre del emisor
+       
         const emisorRes = await pool.query(
           "SELECT name FROM usuarios WHERE id = $1",
           [usuarios_id]
         );
         const emisor_nombre = emisorRes.rows[0]?.name || "Alguien";
 
-        // ✅ guardar notificación y obtener id real
+        
         const notifInsert = await pool.query(
           `INSERT INTO notificaciones (usuario_id, emisor_id, tipo, review_id)
            VALUES ($1, $2, 'favorito', $3)
@@ -736,11 +685,11 @@ router.post("/favorites/toggle", auth, async (req, res) => {
 
         const notif = notifInsert.rows[0];
 
-        // socket emit
+       
         const io = req.app.get("io");
         if (io) {
           io.to(`user_${owner_id}`).emit("nueva_notificacion", {
-            id: notif.id, // ✅ id real (ya no Math.random)
+            id: notif.id, 
             tipo: notif.tipo,
             emisor_nombre,
             book_title,
@@ -759,9 +708,6 @@ router.post("/favorites/toggle", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-    8. NOTIFICACIONES (PRIVADO)
-========================================================= */
 
 router.get("/notifications/me", auth, async (req, res) => {
   try {
@@ -784,7 +730,6 @@ router.get("/notifications/me", auth, async (req, res) => {
   }
 });
 
-// ✅ NUEVA: marcar UNA notificación como leída
 router.put("/notifications/read/:notificationId", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -823,7 +768,7 @@ router.put("/notifications/read-all/me", auth, async (req, res) => {
   }
 });
 
-// 🧨 ADMIN: borrar cualquier reseña
+
 router.delete("/admin/:id", auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -837,7 +782,7 @@ router.delete("/admin/:id", auth, isAdmin, async (req, res) => {
       return res.status(404).json({ error: "Reseña no encontrada" });
     }
 
-    // borrar dependencias primero
+    
     await pool.query("DELETE FROM comments WHERE review_id = $1", [id]);
     await pool.query("DELETE FROM favoritos WHERE review_id = $1", [id]);
 

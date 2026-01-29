@@ -5,7 +5,7 @@ dotenv.config();
 
 const { Pool } = pkg;
 
-// Usar DATABASE_URL si existe (producción), sino usar variables individuales (desarrollo)
+
 const pool = process.env.DATABASE_URL 
   ? new Pool({
       connectionString: process.env.DATABASE_URL,

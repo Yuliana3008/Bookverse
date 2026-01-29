@@ -11,9 +11,6 @@ import {
 import Swal from "sweetalert2";
 import API_URL from "../config";
 
-/* =========================================================
-   🛡️ ADMIN – GESTIÓN DE USUARIOS
-========================================================= */
 const AdminUsersPage = () => {
   const navigate = useNavigate();
 
@@ -21,9 +18,6 @@ const AdminUsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  /* =========================================================
-     📥 Cargar usuarios (ADMIN)
-  ========================================================= */
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -46,9 +40,6 @@ const AdminUsersPage = () => {
     fetchUsers();
   }, []);
 
-  /* =========================================================
-     🔄 Cambiar rol
-  ========================================================= */
   const toggleRole = async (userId, currentRole) => {
     const newRole = currentRole === "admin" ? "lector" : "admin";
 
@@ -100,9 +91,7 @@ const AdminUsersPage = () => {
     }
   };
 
-  /* =========================================================
-     🚫 Bloquear / Desbloquear usuario (BONITO ✨)
-  ========================================================= */
+ 
   const toggleStatus = async (userId, activo, name) => {
     const result = await Swal.fire({
       title: activo ? "¿Bloquear usuario?" : "¿Desbloquear usuario?",
@@ -159,18 +148,12 @@ const AdminUsersPage = () => {
     }
   };
 
-  /* =========================================================
-     🔍 Filtro de búsqueda
-  ========================================================= */
   const filteredUsers = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  /* =========================================================
-     📊 Resumen rápido
-  ========================================================= */
   const totalUsers = users.length;
   const totalAdmins = users.filter((u) => u.rol === "admin").length;
   const totalLectores = users.filter((u) => u.rol === "lector").length;
@@ -201,7 +184,7 @@ const AdminUsersPage = () => {
         Gestión de Usuarios
       </h1>
 
-      {/* 📊 Resumen */}
+      {/*  Resumen */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <Stat label="Usuarios" value={totalUsers} />
         <Stat label="Admins" value={totalAdmins} />
@@ -209,7 +192,7 @@ const AdminUsersPage = () => {
         <Stat label="Bloqueados" value={totalBloqueados} color="text-red-700" />
       </div>
 
-      {/* 🔍 Buscador */}
+      {/*  Buscador */}
       <div className="mb-4 flex items-center gap-2 bg-white border px-3 py-2 shadow w-full sm:w-1/2">
         <Search className="w-4 h-4 text-stone-500" />
         <input
@@ -313,9 +296,7 @@ const AdminUsersPage = () => {
   );
 };
 
-/* =========================================================
-   📦 Componente Stat
-========================================================= */
+
 const Stat = ({ label, value, color = "text-stone-800" }) => (
   <div className="bg-white border shadow p-4 text-center">
     <p className="text-sm text-stone-500">{label}</p>

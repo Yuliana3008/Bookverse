@@ -2,31 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
-import {
-  Users,
-  LogIn,
-  Edit3,
-  BookA,
-  Search,
-  Grid,
-  Home,
-  Info,
-  UserPlus,
-  Wand2,
-  Heart,
-  Bell,
-  MessageSquare,
-  Clock,
-  CheckCheck,
-  BookOpen,
-  BookText,
-  Menu,
-  X,
-} from "lucide-react";
+import {Users, LogIn, Edit3, BookA, Search, Grid, Home, Info, UserPlus, Wand2, Heart, Bell, MessageSquare, Clock, CheckCheck, BookOpen, BookText, Menu, X,} from "lucide-react";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL;
 
-// --- Componente NavItem Unificado ---
 const NavItem = ({ item, onClick, isCurrentPage, isMobile = false }) => {
   const isAnchorLink = item.to.includes("/#");
   const commonClasses = `text-stone-600 font-medium hover:text-amber-700 transition duration-150 flex items-center group ${
@@ -82,7 +61,6 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
     }
   };
 
-  // Cargar notificaciones y Socket
   useEffect(() => {
     if (isAuthenticated && userId) {
       fetchNotifications();
@@ -105,7 +83,6 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
     };
   }, [isAuthenticated, userId]);
 
-  // Cierre al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -125,7 +102,6 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Prevenir scroll cuando el menú móvil está abierto
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';

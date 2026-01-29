@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-// ✅ Agregamos Eye y EyeOff a las importaciones
 import { UserPlus, LogIn, Mail, Lock, CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
 import API_URL from "../config";
 import { useNavigate } from "react-router-dom";
@@ -18,12 +17,8 @@ const AuthModal = ({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
-  // ✅ NUEVO: Visibilidad de contraseña
   const [showPassword, setShowPassword] = useState(false);
-
   const [passwordStrength, setPasswordStrength] = useState("weak");
-
   const navigate = useNavigate();
 
   const resetForm = useCallback(() => {
@@ -31,7 +26,7 @@ const AuthModal = ({
     setPassword("");
     setName("");
     setPasswordStrength("weak");
-    setShowPassword(false); // Resetear visibilidad al cerrar
+    setShowPassword(false); 
   }, []);
 
   useEffect(() => {
@@ -183,7 +178,7 @@ const AuthModal = ({
           {mode === "register" && (
             <div>
               <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">
-                Nombre Completo
+                Nombre usuario
               </label>
               <div className="relative group">
                 <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -225,7 +220,7 @@ const AuthModal = ({
             <div className="relative group">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
               <input
-                type={showPassword ? "text" : "password"} // ✅ Tipo dinámico
+                type={showPassword ? "text" : "password"} 
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => {
@@ -236,7 +231,7 @@ const AuthModal = ({
                 required
                 disabled={isLoading}
               />
-              {/* ✅ Botón de ojo para mostrar/ocultar */}
+              {/*  Botón de ojo para mostrar/ocultar */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}

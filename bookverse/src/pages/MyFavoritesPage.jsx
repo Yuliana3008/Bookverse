@@ -3,9 +3,6 @@ import { Heart, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API_URL from "../config";
 
-/* =========================================================
-  ✅ Helper: Auth headers (cookie + Bearer fallback)
-========================================================= */
 const getAuthHeaders = () => {
   try {
     const token = localStorage.getItem("token");
@@ -23,7 +20,6 @@ const MyFavoritesPage = () => {
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
-        // 1) Validar sesión real (cookie) + fallback Bearer
         const meRes = await fetch(`${API_URL}/api/auth/me`, {
           method: "GET",
           credentials: "include",
@@ -34,12 +30,10 @@ const MyFavoritesPage = () => {
         });
 
         if (!meRes.ok) {
-          // No hay sesión -> puedes mandar al home o abrir modal
           navigate("/");
           return;
         }
 
-        // 2) Pedir favoritos del usuario logueado (cookie + fallback Bearer)
         const favRes = await fetch(`${API_URL}/api/reviews/favorites/me`, {
           method: "GET",
           credentials: "include",

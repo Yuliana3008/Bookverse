@@ -7,17 +7,11 @@ import { auth } from "../middlewares/auth.js";
 import { sendVerificationEmail, sendPasswordResetEmail} from "../utils/mailer.js";
 
 const router = express.Router();
-
-/* =========================================================
-   🚪 REGISTRO
-   👉 NO inicia sesión
-   👉 Requiere confirmación por correo
-========================================================= */
+/*registro*/
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // ❌ Validación básica
     if (!name || !email || !password) {
       return res.status(400).json({
         error: "Datos incompletos.",
@@ -35,7 +29,6 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // 🔐 NUEVA VALIDACIÓN DE SEGURIDAD
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
@@ -46,10 +39,8 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // 🔒 Hash (DESPUÉS de validar)
     const password_hash = await bcrypt.hash(password, 10);
 
-    // 1️⃣ Crear usuario (NO verificado)
     const result = await pool.query(
       `INSERT INTO usuarios (name, email, password_hash, email_verified)
        VALUES ($1, $2, $3, FALSE)
@@ -59,18 +50,14 @@ router.post("/register", async (req, res) => {
 
     const user = result.rows[0];
 
-
-    // 2️⃣ Generar token
     const token = crypto.randomBytes(32).toString("hex");
 
-    // 3️⃣ Guardar token (24h)
     await pool.query(
       `INSERT INTO email_verifications (user_id, token, expires_at)
        VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
       [user.id, token]
     );
 
-    // 4️⃣ Enviar correo
     await sendVerificationEmail(user.email, token);
 
     return res.status(201).json({
@@ -78,9 +65,9 @@ router.post("/register", async (req, res) => {
       message: "Cuenta creada. Revisa tu correo para confirmar tu cuenta.",
     });
   } catch (err) {
-    // Error 23505 es "Unique Violation" en PostgreSQL
+   
     if (err.code === "23505") {
-        // Verificamos si el error viene de la columna 'name' o 'email'
+        
         const detail = err.detail || "";
         
         if (detail.includes("name")) {
@@ -95,7 +82,6 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        // Si no podemos determinar cuál es, enviamos uno genérico
         return res.status(409).json({ 
             error: "El nombre de usuario o el correo ya están en uso." 
         });
@@ -108,9 +94,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-/* =========================================================
-   🔑 LOGIN
-========================================================= */
+/*login*/
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -130,7 +114,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     }
       const user = result.rows[0];
-    // 🚫 Bloquear si el usuario está desactivado
+   
 if (!user.activo) {
   return res.status(403).json({
     error: "Tu cuenta ha sido bloqueada por un administrador.",
@@ -144,7 +128,7 @@ if (!user.activo) {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     }
 
-    // 🚫 Bloquear si no está verificado
+   
     if (!user.email_verified) {
       return res.status(403).json({
         error: "Debes confirmar tu correo electrónico antes de iniciar sesión.",
@@ -178,9 +162,7 @@ if (!user.activo) {
   }
 });
 
-/* =========================================================
-   👤 SESIÓN ACTUAL
-========================================================= */
+
 router.get("/me", auth, async (req, res) => {
   try {
     const result = await pool.query(
@@ -196,7 +178,6 @@ router.get("/me", auth, async (req, res) => {
 
     const user = result.rows[0];
 
-    // 🚫 Usuario bloqueado → forzar logout
     if (!user.activo) {
       return res.status(403).json({
         error: "Tu cuenta ha sido bloqueada por un administrador",
@@ -211,9 +192,7 @@ router.get("/me", auth, async (req, res) => {
 });
 
 
-/* =========================================================
-   🚪 LOGOUT
-========================================================= */
+
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     secure: process.env.NODE_ENV === "production",
@@ -224,12 +203,7 @@ router.post("/logout", (req, res) => {
   res.json({ message: "Sesión cerrada." });
 });
 
-/* =========================================================
-   ✏️ EDITAR PERFIL
-========================================================= */
-/* =========================================================
-   ✏️ EDITAR PERFIL (CORREGIDO)
-========================================================= */
+/*editar perfil*/
 router.put("/update-profile", auth, async (req, res) => {
   const { name, email } = req.body;
   const id = req.user.id;
@@ -241,7 +215,7 @@ router.put("/update-profile", auth, async (req, res) => {
       });
     }
 
-    // Intentamos actualizar
+   
     const result = await pool.query(
       `UPDATE usuarios 
        SET name = $1, email = $2 
@@ -255,7 +229,7 @@ router.put("/update-profile", auth, async (req, res) => {
       user: result.rows[0],
     });
   } catch (err) {
-    // Capturamos el error de duplicidad (Unique Violation)
+   
     if (err.code === "23505") {
       const detail = err.detail || "";
 
@@ -271,7 +245,7 @@ router.put("/update-profile", auth, async (req, res) => {
         });
       }
 
-      // Fallback por si acaso
+      
       return res.status(409).json({
         error: "El nombre o el correo ya están registrados.",
       });
@@ -284,9 +258,7 @@ router.put("/update-profile", auth, async (req, res) => {
   }
 });
 
-/* =========================================================
-   ✉️ VERIFICAR EMAIL (CORREGIDO)
-========================================================= */
+
 router.get("/verify-email/:token", async (req, res) => {
   const { token } = req.params;
 
@@ -299,7 +271,7 @@ router.get("/verify-email/:token", async (req, res) => {
       [token]
     );
 
-    // ✅ Token ya usado o inexistente → correo ya verificado
+    
     if (result.rowCount === 0) {
       return res.json({
         success: true,
@@ -335,9 +307,7 @@ router.get("/verify-email/:token", async (req, res) => {
   }
 });
 
-/* =========================================================
-   🔁 REENVIAR VERIFICACIÓN
-========================================================= */
+
 router.post("/resend-verification", async (req, res) => {
   const { email } = req.body;
 
@@ -393,9 +363,7 @@ router.post("/resend-verification", async (req, res) => {
   }
 });
 
-/* =========================================================
-   🔐 OLVIDÉ MI CONTRASEÑA
-========================================================= */
+
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
@@ -409,7 +377,7 @@ router.post("/forgot-password", async (req, res) => {
       [email]
     );
 
-    // 🔒 Respuesta genérica (no revelar si existe)
+    
     if (result.rowCount === 0) {
       return res.json({
         message: "Si el correo existe, se enviará un enlace para restablecer la contraseña.",
@@ -418,23 +386,23 @@ router.post("/forgot-password", async (req, res) => {
 
     const userId = result.rows[0].id;
 
-    // 🧹 Limpiar tokens anteriores
+    
     await pool.query(
       `DELETE FROM password_resets WHERE user_id = $1`,
       [userId]
     );
 
-    // 🔑 Generar token
+    
     const token = crypto.randomBytes(32).toString("hex");
 
-    // ⏱ Expira en 1 hora
+   
     await pool.query(
       `INSERT INTO password_resets (user_id, token, expires_at)
        VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
       [userId, token]
     );
 
-    // ✉️ Enviar correo
+    
     await sendPasswordResetEmail(email, token);
 
     return res.json({
@@ -446,9 +414,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-// =========================================================
-// 🔐 RESET PASSWORD (POST /api/auth/reset-password/:token)
-// =========================================================
+
 router.post("/reset-password/:token", async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
@@ -460,7 +426,6 @@ router.post("/reset-password/:token", async (req, res) => {
       });
     }
 
-    // 1️⃣ Buscar token válido
     const result = await pool.query(
       `
       SELECT pr.user_id
@@ -479,10 +444,8 @@ router.post("/reset-password/:token", async (req, res) => {
 
     const userId = result.rows[0].user_id;
 
-    // 2️⃣ Hashear nueva contraseña
     const password_hash = await bcrypt.hash(password, 10);
 
-    // 3️⃣ Actualizar contraseña
     await pool.query(
       `
       UPDATE usuarios
@@ -492,7 +455,6 @@ router.post("/reset-password/:token", async (req, res) => {
       [password_hash, userId]
     );
 
-    // 4️⃣ Eliminar token (uso único)
     await pool.query(
       `DELETE FROM password_resets WHERE user_id = $1`,
       [userId]
@@ -509,7 +471,6 @@ router.post("/reset-password/:token", async (req, res) => {
     });
   }
 });
-
 
 
 export default router;

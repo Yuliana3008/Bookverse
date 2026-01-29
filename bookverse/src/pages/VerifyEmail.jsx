@@ -27,7 +27,6 @@ const VerifyEmail = () => {
 
         setStatus("success");
 
-        // redirigir al login después de 3s
         setTimeout(() => {
           navigate("/");
         }, 3000);

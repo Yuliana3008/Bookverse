@@ -7,10 +7,8 @@ import {
 } from 'lucide-react'; 
 import ReviewsPage from './ReviewsPage.jsx'; 
 
-// URL de tu API (Ajusta si usas otra variable de entorno)
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// --- Componente: Recomendación Dinámica ---
 const DailyRecommendation = () => {
     const [libro, setLibro] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -115,7 +113,7 @@ const DailyRecommendation = () => {
     );
 };
 
-// --- Componentes de Apoyo ---
+
 const ValueCard = ({ icon: Icon, title, description }) => (
     <div className="bg-[#fdfcf8] p-6 md:p-8 rounded-3xl shadow-sm border border-stone-200 hover:border-amber-500 transition-all duration-500 group">
         <div className="text-amber-700 mb-4 flex items-center justify-center bg-amber-50 w-14 h-14 md:w-16 md:h-16 rounded-2xl group-hover:bg-amber-100 transition-colors mx-auto md:mx-0">

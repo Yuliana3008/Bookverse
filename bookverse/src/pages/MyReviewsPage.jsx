@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import API_URL from "../config";
 
-/* ===================== AUTH HELPERS ===================== */
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -26,7 +25,6 @@ const normalizeImageUrl = (image_url) => {
   return `${API_URL}${image_url}`;
 };
 
-/* ===================== CARD ===================== */
 const MyReviewCard = ({ review }) => {
   const [revealed, setRevealed] = useState(false);
 
@@ -186,7 +184,6 @@ const MyReviewCard = ({ review }) => {
   );
 };
 
-/* ===================== PAGE ===================== */
 const MyReviewsPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, openModal } = useOutletContext();
@@ -195,7 +192,6 @@ const MyReviewsPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ✅ Si no hay sesión, no cargamos nada
     if (!isAuthenticated) {
       setLoading(false);
       openModal?.("login");
@@ -210,7 +206,7 @@ const MyReviewsPage = () => {
           credentials: "include",
           headers: {
             Accept: "application/json",
-            ...getAuthHeaders(), // ✅ Bearer fallback para móvil/tablet
+            ...getAuthHeaders(), 
           },
         });
 

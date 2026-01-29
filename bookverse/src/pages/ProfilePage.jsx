@@ -1,28 +1,20 @@
-// src/pages/ProfilePage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { User, BookOpen, Star, Grid } from 'lucide-react';
-// Asumimos que ReviewsPage.jsx exporta el componente ReviewCard (que creamos antes)
-// Si no lo exporta, copia el ReviewCard en este archivo.
 import { ReviewCard } from './ReviewsPage'; 
 
-// Datos de ejemplo para el perfil
 const userProfileData = {
     bio: "Apasionado por la fantasía épica y los clásicos de la ciencia ficción.",
     joinedDate: "Enero 2024",
 };
 
-// Datos de reseñas (Simulamos filtrar las reseñas por el userId)
 const sampleUserReviews = [
     { id: 101, user: "yo", bookTitle: "El Misterio del Libro Olvidado", rating: 5, text: "La mejor novela de thriller que he leído en años. Totalmente atrapante.", date: "15 de Octubre, 2025", comments: 12 },
     { id: 102, user: "yo", bookTitle: "El Jardín del Silencio", rating: 4, text: "Una lectura conmovedora, aunque el final fue un poco abrupto.", date: "2 de Noviembre, 2025", comments: 5 },
 ];
 
 
-// --- Componente Mis Reseñas (Sección Específica) ---
 const MyReviewsSection = ({ userId, userName }) => {
-    // En una aplicación real, aquí harías fetch(`/api/user/${userId}/reviews`)
     
     return (
         <section id="mis-reseñas" className="mt-10 pt-10 border-t border-gray-200">
@@ -46,12 +38,10 @@ const MyReviewsSection = ({ userId, userName }) => {
 };
 
 
-// --- Componente Principal de la Página de Perfil ---
 const ProfilePage = () => {
     const { isAuthenticated, userName, userId, handleLogout } = useOutletContext();
 
     if (!isAuthenticated) {
-        // Redirección o mensaje de acceso denegado (similar a AddReviewPage)
         return <div className="p-20 text-center">Debes iniciar sesión para ver tu perfil.</div>;
     }
 

@@ -19,10 +19,6 @@ import {
 } from "lucide-react";
 import API_URL from "../config";
 
-/* =========================================================
-    ✅ Helper: Auth headers (cookie + Bearer fallback)
-    - En mobile/tablet a veces NO se guarda cookie -> Bearer salva
-========================================================= */
 const getAuthHeaders = () => {
   try {
     const token = localStorage.getItem("token");
@@ -32,11 +28,7 @@ const getAuthHeaders = () => {
   }
 };
 
-/* =========================================================
-    ✅ COMPONENTE: COMENTARIOS
-    - GET comentarios: público
-    - POST/DELETE: privado (cookie) + fallback Bearer
-========================================================= */
+
 const CommentsSection = ({ reviewId, authUser, openModal }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -182,9 +174,6 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
   );
 };
 
-/* =========================================================
-    ✅ PÁGINA DETALLE RESEÑA
-========================================================= */
 const ReviewDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -312,7 +301,7 @@ const ReviewDetailPage = () => {
       const handleAdminDeleteReview = async () => {
   if (
     !window.confirm(
-      "⚠️ ADMIN: ¿Eliminar esta reseña permanentemente? Esta acción no se puede deshacer."
+      " ADMIN: ¿Eliminar esta reseña permanentemente? Esta acción no se puede deshacer."
     )
   )
     return;

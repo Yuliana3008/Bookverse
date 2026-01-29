@@ -10,7 +10,6 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState("form");
   const [message, setMessage] = useState("");
-  // Nuevo estado para la visibilidad
   const [showPassword, setShowPassword] = useState(false);
 
   const token = searchParams.get("token");

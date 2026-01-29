@@ -10,15 +10,12 @@ import {
 } from "recharts";
 import API_URL from "../config";
 
-const COLORS = ["#15803d", "#b91c1c"]; // verde / rojo
+const COLORS = ["#15803d", "#b91c1c"]; 
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
-  /* =========================================================
-     📥 Cargar usuarios (stats)
-  ========================================================= */
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -40,9 +37,6 @@ const AdminDashboard = () => {
     fetchUsers();
   }, []);
 
-  /* =========================================================
-     📊 Cálculos
-  ========================================================= */
   const totalUsers = users.length;
   const activos = users.filter((u) => u.activo).length;
   const bloqueados = totalUsers - activos;
@@ -64,7 +58,7 @@ const AdminDashboard = () => {
           Panel de Administración
         </h1>
         <p className="mt-2 text-stone-600 italic">
-          Bienvenido al panel de administración de BookVerse.
+          Bienvenido al panel de administración de MyBookCompass.
         </p>
       </div>
 
@@ -105,7 +99,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* 📊 ESTADO GENERAL */}
+      {/*  ESTADO GENERAL */}
       <div className="mb-6">
         <h3 className="text-xl font-bold text-stone-800 mb-2">
           Estado general de la comunidad
@@ -116,7 +110,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 📊 Gráfica usuarios */}
+        {/*  Gráfica usuarios */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-stone-200">
           <h4 className="text-lg font-bold text-stone-800 mb-4">
             Usuarios activos vs bloqueados
@@ -166,7 +160,7 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        {/* 📈 Indicador de usuarios activos */}
+        {/* Indicador de usuarios activos */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-stone-200 flex flex-col justify-center">
           <h4 className="text-lg font-bold text-stone-800 mb-2">
             Usuarios activos
