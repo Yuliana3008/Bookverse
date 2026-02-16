@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
-import {Users, LogIn, Edit3, BookA, Search, Grid, Home, Info, UserPlus, Wand2, Heart, Bell, MessageSquare, Clock, CheckCheck, BookOpen, BookText, Menu, X,} from "lucide-react";
+import { Compass, Sparkles, LogIn, Edit3, BookA, Search, Grid, Home, Info, UserPlus, Wand2, Heart, Bell, MessageSquare, Clock, CheckCheck, BookOpen, Menu, X } from "lucide-react";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL;
 
@@ -173,16 +173,32 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
     <header className="sticky top-0 z-40 bg-[#fdfcf8] bg-opacity-95 backdrop-blur-sm shadow-sm border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center space-x-2 transition duration-200 hover:opacity-80"
-          >
-            <BookText className="w-6 h-6 sm:w-8 sm:h-8 text-amber-700" />
-            <span className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-stone-800 tracking-tight font-serif">
-              MyBookCompass
-            </span>
-          </Link>
+         {/* Nuevo Logo Editorial */}
+<Link to="/" className="flex items-center group no-underline">
+  <div className="relative flex items-center justify-center">
+    {/* Decoración de fondo (un cuadro sutil que gira al pasar el mouse) */}
+    <div className="absolute inset-0 bg-amber-100 rounded-xl rotate-3 group-hover:rotate-12 transition-transform duration-300"></div>
+    
+    {/* Contenedor del Icono Principal */}
+    <div className="relative bg-amber-700 p-2 sm:p-2.5 rounded-xl shadow-lg transform group-hover:-rotate-3 transition-transform duration-300">
+      <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-white stroke-[2.5px]" />
+    </div>
+    
+    {/* Chispa visual que aparece en hover */}
+    <Sparkles className="absolute -top-2 -right-2 w-4 h-4 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+  </div>
+
+  <div className="ml-3 sm:ml-4 flex flex-col leading-none">
+    {/* Texto con dos pesos de fuente para mayor elegancia */}
+    <span className="text-xl sm:text-2xl font-serif font-black text-stone-900 tracking-tighter">
+      MyBook<span className="text-amber-700 italic font-serif">Compass</span>
+    </span>
+    {/* Eslogan pequeño estilo sello editorial */}
+    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-stone-400 mt-1 hidden xs:block">
+      Explora • Reseña • Descubre
+    </span>
+  </div>
+</Link>
 
           {/* Navegación Desktop */}
           <nav className="hidden lg:flex space-x-6 xl:space-x-8 items-center">
@@ -300,7 +316,9 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
                     className="flex items-center px-3 py-2 rounded-lg transition duration-150 hover:bg-stone-100 focus:outline-none"
                     type="button"
                   >
-                    <Users className="w-5 h-5 text-amber-700 mr-2" />
+                    <div className="w-8 h-8 bg-amber-700 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2 shadow-sm">
+  {userName?.charAt(0).toUpperCase()}
+</div>
                     <span className="text-sm font-semibold text-stone-800 font-serif hidden md:inline">
                       Hola, {userName}
                     </span>

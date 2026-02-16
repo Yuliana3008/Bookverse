@@ -175,7 +175,7 @@ export const RecentReviewsSection = ({ title = "Reseñas", limit = null }) => {
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState("newest");
   const [page, setPage] = useState(1);
-  const pageSize = 10; 
+  const pageSize = 6; 
 
   useEffect(() => {
     let alive = true;
