@@ -141,12 +141,11 @@ if (!user.activo) {
       { expiresIn: "2h" }
     );
 
-    const isProduction = process.env.NODE_ENV === "production";
-
+  
 res.cookie("token", token, {
   httpOnly: true,
-  secure: isProduction, 
-  sameSite: isProduction ? "None" : "Lax", 
+  secure: true, 
+  sameSite: "None", 
   path: "/",
   maxAge: 24 * 60 * 60 * 1000,
 });

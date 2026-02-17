@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Star, User, BookOpen, Filter, Calendar, Sparkles } from "lucide-react";
+import { Search, Star, User, BookOpen, Filter, Calendar, Sparkles, AlertTriangle } from "lucide-react";
 import API_URL from '../config';
 
 const SearchPage = () => {
@@ -34,6 +34,7 @@ const SearchPage = () => {
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
+    // Permitimos buscar si hay un rating, incluso si es -1
     if (!searchTerm.trim() && !filters.genre && !filters.rating) return;
 
     setIsSearching(true);
@@ -107,7 +108,7 @@ const SearchPage = () => {
             </button>
           </form>
 
-          {/* BARRA Responsiva*/}
+          {/* BARRA DE FILTROS ACTUALIZADA */}
           <div className="bg-stone-200/50 p-4 flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center px-5 border-t border-stone-300">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Filter className="w-4 h-4 text-amber-900 shrink-0" />
@@ -137,6 +138,7 @@ const SearchPage = () => {
                 className="bg-transparent text-sm focus:outline-none cursor-pointer border-b border-stone-400 italic flex-grow sm:flex-grow-0"
               >
                 <option value="">Todas</option>
+                <option value="-1">Pésimo (-1)</option>
                 <option value="5">5 Estrellas</option>
                 <option value="4">4 Estrellas</option>
                 <option value="3">3 Estrellas</option>
@@ -163,43 +165,78 @@ const SearchPage = () => {
         {/* Resultados */}
         {!isSearching && searchResults.length > 0 && (
           <div className="space-y-6 md:space-y-10">
-            {searchResults.map((review) => (
-              <Link to={`/review/${review.id}`} key={review.id} className="block group">
-                <div className="bg-[#f4f1ea] p-5 md:p-8 border border-stone-300 shadow-lg group-hover:border-amber-800 transition-all duration-300 relative">
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-stone-400 group-hover:bg-amber-900 transition-colors"></div>
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                      <div className="min-w-0 w-full">
-                        <h3 className="text-xl md:text-2xl font-bold text-stone-900 leading-tight group-hover:text-amber-900 transition-colors break-words">
-                          {review.book_title}
-                        </h3>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest mt-2 ${getGenreStyle(review.categoria_ia)}`}>
-                            <Sparkles className="w-2.5 h-2.5" />
-                            {review.categoria_ia || "General"}
-                        </span>
-                      </div>
-                      <div className="flex items-center bg-amber-900 text-[#f4f1ea] px-3 py-1 border border-amber-950 shrink-0 self-start sm:self-auto">
-                          <Star className="w-3.5 h-3.5 mr-1 text-amber-400 fill-amber-400" />
-                          <span className="font-bold text-sm">{review.rating}</span>
-                      </div>
-                  </div>
+            {searchResults.map((review) => {
+              const isNegative = review.rating === -1;
+              
+              return (
+                <Link to={`/review/${review.id}`} key={review.id} className="block group">
+                  <div className={`bg-[#f4f1ea] p-5 md:p-8 border shadow-lg transition-all duration-300 relative ${
+                    isNegative 
+                      ? "border-red-200 group-hover:border-red-500" 
+                      : "border-stone-300 group-hover:border-amber-800"
+                  }`}>
+                    {/* Cinta lateral dinámica */}
+                    <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${
+                      isNegative ? "bg-red-700" : "bg-stone-400 group-hover:bg-amber-900"
+                    }`}></div>
+                    
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                        <div className="min-0 w-full">
+                          <h3 className={`text-xl md:text-2xl font-bold leading-tight transition-colors break-words ${
+                            isNegative ? "text-red-950 group-hover:text-red-700" : "text-stone-900 group-hover:text-amber-900"
+                          }`}>
+                            {review.book_title}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${getGenreStyle(review.categoria_ia)}`}>
+                                <Sparkles className="w-2.5 h-2.5" />
+                                {review.categoria_ia || "General"}
+                            </span>
+                            {isNegative && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-red-200 bg-red-50 text-red-700 text-[9px] font-bold uppercase tracking-widest">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                Crítica Negativa
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                  <div className="flex items-center text-xs md:text-sm text-stone-600 mb-6 italic">
-                    <User className="w-4 h-4 mr-2 text-amber-900 shrink-0" />
-                    <span className="truncate">Crítica por <span className="text-stone-900 font-bold uppercase tracking-wider">{review.name}</span></span>
-                  </div>
+                        {/* Badge de Rating Dinámico */}
+                        <div className={`flex items-center px-3 py-1 border shadow-sm shrink-0 self-start sm:self-auto transition-transform group-hover:scale-105 ${
+                          isNegative 
+                            ? "bg-red-700 text-white border-red-900" 
+                            : "bg-amber-900 text-[#f4f1ea] border-amber-950"
+                        }`}>
+                            <Star className={`w-3.5 h-3.5 mr-1 ${isNegative ? "text-white fill-white" : "text-amber-400 fill-amber-400"}`} />
+                            <span className="font-bold text-sm tracking-tighter">
+                              {isNegative ? "PÉSIMO" : review.rating}
+                            </span>
+                        </div>
+                    </div>
 
-                  <p className="text-stone-800 mb-6 md:mb-8 leading-relaxed text-base md:text-lg border-l-4 border-stone-200 pl-4 md:pl-6 italic line-clamp-3">
-                    "{review.review_text}"
-                  </p>
+                    <div className="flex items-center text-xs md:text-sm text-stone-600 mb-6 italic">
+                      <User className={`w-4 h-4 mr-2 shrink-0 ${isNegative ? "text-red-800" : "text-amber-900"}`} />
+                      <span className="truncate">Crítica por <span className="text-stone-900 font-bold uppercase tracking-wider">{review.name}</span></span>
+                    </div>
 
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-[9px] text-stone-500 font-sans tracking-widest uppercase border-t border-stone-200 pt-4 gap-2">
-                    <span>Publicado el {new Date(review.created_at).toLocaleDateString("es-MX", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                    <span className="font-bold text-amber-900 sm:opacity-0 group-hover:opacity-100 transition-opacity">Leer crónica completa →</span>
+                    <p className={`mb-6 md:mb-8 leading-relaxed text-base md:text-lg border-l-4 pl-4 md:pl-6 italic line-clamp-3 ${
+                      isNegative ? "text-stone-700 border-red-200" : "text-stone-800 border-stone-200"
+                    }`}>
+                      "{review.review_text}"
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-[9px] text-stone-500 font-sans tracking-widest uppercase border-t border-stone-200 pt-4 gap-2">
+                      <span>Publicado el {new Date(review.created_at).toLocaleDateString("es-MX", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span className={`font-bold sm:opacity-0 group-hover:opacity-100 transition-opacity ${
+                        isNegative ? "text-red-700" : "text-amber-900"
+                      }`}>
+                        Leer crónica completa →
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
         

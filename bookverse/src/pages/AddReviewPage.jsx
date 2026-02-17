@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Edit3, Star, BookOpen, User, ImageIcon } from "lucide-react";
+import { Edit3, Star, BookOpen, User, ImageIcon, AlertCircle } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import API_URL from "../config";
 
@@ -9,7 +9,7 @@ const AddReviewPage = () => {
 
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(0); // 0 = sin selección, -1 = No me gustó, 1-5 = estrellas
   const [reviewText, setReviewText] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -37,15 +37,16 @@ const AddReviewPage = () => {
       return;
     }
 
+    // Validación: Ahora permitimos rating -1
     if (
-      rating === 0 ||
+      rating === 0 || 
       reviewText.length < 10 ||
       bookTitle.length < 3 ||
       author.length < 2
     ) {
       setAuthMessage({
         type: "error",
-        text: "Por favor, completa todos los campos y escribe al menos 10 caracteres.",
+        text: "Por favor, completa todos los campos (incluyendo la puntuación).",
       });
       return;
     }
@@ -89,6 +90,7 @@ const AddReviewPage = () => {
         text: `¡Reseña de "${bookTitle}" publicada con éxito!`,
       });
 
+      // Resetear formulario
       setBookTitle("");
       setAuthor("");
       setRating(0);
@@ -128,15 +130,52 @@ const AddReviewPage = () => {
   }
 
   const renderStars = () => {
-    return [1, 2, 3, 4, 5].map((starValue) => (
-      <Star
-        key={starValue}
-        fill={starValue <= rating ? "#78350f" : "none"}
-        stroke={starValue <= rating ? "#78350f" : "#78716c"}
-        className="w-8 h-8 md:w-10 md:h-10 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-90"
-        onClick={() => setRating(starValue)}
-      />
-    ));
+    return (
+      <div className="flex flex-col sm:flex-row items-center gap-6">
+        {/* Opción de Pésimo / Odio */}
+        <div className="flex flex-col items-center group">
+          <button
+            type="button"
+            onClick={() => setRating(rating === -1 ? 0 : -1)}
+            className="focus:outline-none transition-transform active:scale-90"
+          >
+            <Star
+              fill={rating === -1 ? "#b91c1c" : "none"}
+              stroke={rating === -1 ? "#b91c1c" : "#78716c"}
+              className={`w-10 h-10 md:w-12 md:h-12 transition-colors ${
+                rating === -1 ? "drop-shadow-[0_0_8px_rgba(185,28,28,0.4)]" : "group-hover:stroke-red-400"
+              }`}
+            />
+          </button>
+          <span className={`text-[10px] font-bold mt-1 uppercase tracking-tighter ${rating === -1 ? "text-red-700" : "text-stone-400"}`}>
+            Pésimo
+          </span>
+        </div>
+
+        {/* Separador */}
+        <div className="hidden sm:block h-10 w-[2px] bg-stone-300"></div>
+
+        {/* Estrellas 1-5 */}
+        <div className="flex flex-col items-center sm:items-start">
+          <div className="flex space-x-1">
+            {[1, 2, 3, 4, 5].map((starValue) => (
+              <Star
+                key={starValue}
+                fill={rating >= starValue ? "#78350f" : "none"}
+                stroke={rating >= starValue ? "#78350f" : "#78716c"}
+                className={`w-8 h-8 md:w-10 md:h-10 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 ${
+                  rating === -1 ? "opacity-20 grayscale" : "opacity-100"
+                }`}
+                onClick={() => setRating(starValue)}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] font-bold mt-1 uppercase text-stone-400 tracking-tighter">
+            Calificación Estándar
+          </span>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -151,16 +190,12 @@ const AddReviewPage = () => {
         </div>
 
         <div className="bg-[#f4f1ea] p-6 md:p-10 shadow-2xl border border-stone-300 relative overflow-hidden">
-          {/* Decoración lateral solo visible en pantallas más grandes para no quitar espacio en móvil */}
           <div className="hidden sm:block absolute top-0 left-0 w-2 h-full bg-stone-300 border-r border-stone-400"></div>
 
           <form onSubmit={handleSubmit} className="sm:pl-4">
             {/* Título */}
             <div className="mb-6 md:mb-8">
-              <label
-                htmlFor="bookTitle"
-                className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-2 md:mb-3 flex items-center italic"
-              >
+              <label htmlFor="bookTitle" className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-2 md:mb-3 flex items-center italic">
                 <BookOpen className="w-5 h-5 mr-3 text-amber-900 shrink-0" />
                 Título del Libro:
               </label>
@@ -178,10 +213,7 @@ const AddReviewPage = () => {
 
             {/* Autor */}
             <div className="mb-6 md:mb-8">
-              <label
-                htmlFor="author"
-                className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-2 md:mb-3 flex items-center italic"
-              >
+              <label htmlFor="author" className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-2 md:mb-3 flex items-center italic">
                 <User className="w-5 h-5 mr-3 text-amber-900 shrink-0" />
                 Autor:
               </label>
@@ -206,48 +238,35 @@ const AddReviewPage = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <label className="w-full sm:w-auto text-center cursor-pointer bg-[#ede9dd] border border-stone-300 px-6 py-3 font-serif italic text-stone-700 hover:bg-stone-200 transition-all shadow-sm text-sm">
                   {imageFile ? "Cambiar Imagen" : "Seleccionar Archivo"}
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    disabled={isSubmitting}
-                  />
+                  <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isSubmitting} />
                 </label>
-                {imageFile && (
-                  <span className="text-stone-500 italic text-xs truncate max-w-full">
-                    {imageFile.name}
-                  </span>
-                )}
+                {imageFile && <span className="text-stone-500 italic text-xs truncate max-w-full">{imageFile.name}</span>}
               </div>
-
               {previewUrl && (
                 <div className="mt-6 flex justify-center sm:justify-start">
-                  <img
-                    src={previewUrl}
-                    alt="Vista previa"
-                    className="h-36 md:h-44 shadow-lg border-4 border-white p-1 bg-white"
-                  />
+                  <img src={previewUrl} alt="Vista previa" className="h-36 md:h-44 shadow-lg border-4 border-white p-1 bg-white" />
                 </div>
               )}
             </div>
 
-            {/* Rating */}
-            <div className="mb-8 md:mb-10 text-center sm:text-left">
-              <label className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-4 italic">
-                Puntuación:
+            {/* Puntuación (Nuevo renderStars) */}
+            <div className="mb-8 md:mb-10 p-4 bg-[#ede9dd]/30 border border-stone-200 rounded-sm">
+              <label className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-4 italic text-center sm:text-left">
+                ¿Qué te pareció el libro?
               </label>
-              <div className="flex space-x-2 justify-center sm:justify-start">
+              <div className="flex justify-center sm:justify-start">
                 {renderStars()}
               </div>
+              {rating === -1 && (
+                <p className="text-red-700 text-[11px] mt-3 italic font-serif text-center sm:text-left animate-pulse">
+                  * Has marcado este libro como una experiencia negativa.
+                </p>
+              )}
             </div>
 
             {/* Review */}
             <div className="mb-8 md:mb-10">
-              <label
-                htmlFor="reviewText"
-                className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-3 italic"
-              >
+              <label htmlFor="reviewText" className="block text-stone-900 font-serif font-bold text-base md:text-lg mb-3 italic">
                 Tu Reseña:
               </label>
               <textarea

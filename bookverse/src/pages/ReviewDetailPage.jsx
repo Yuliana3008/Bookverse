@@ -16,6 +16,7 @@ import {
   Send,
   Edit2,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import API_URL from "../config";
 
@@ -27,7 +28,6 @@ const getAuthHeaders = () => {
     return {};
   }
 };
-
 
 const CommentsSection = ({ reviewId, authUser, openModal }) => {
   const [comments, setComments] = useState([]);
@@ -177,19 +177,17 @@ const CommentsSection = ({ reviewId, authUser, openModal }) => {
 const ReviewDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const { authUser, openModal, isAdmin} = useOutletContext();
+  const { authUser, openModal, isAdmin } = useOutletContext();
 
   const [review, setReview] = useState(null);
   const [revealed, setRevealed] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-
   const [isEditingReview, setIsEditingReview] = useState(false);
   const [editReviewFields, setEditReviewFields] = useState({
     book_title: "",
     author: "",
     review_text: "",
-    rating: 5,
+    rating: 0,
   });
 
   useEffect(() => {
@@ -204,7 +202,7 @@ const ReviewDetailPage = () => {
           book_title: data.book_title || "",
           author: data.author || "",
           review_text: data.review_text || "",
-          rating: data.rating ?? 5,
+          rating: data.rating ?? 0,
         });
       } catch (error) {
         console.error("❌ Error:", error);
@@ -220,13 +218,10 @@ const ReviewDetailPage = () => {
       try {
         const response = await fetch(`${API_URL}/api/reviews/favorites/check/${id}`, {
           credentials: "include",
-          headers: {
-            ...getAuthHeaders(),
-          },
+          headers: { ...getAuthHeaders() },
         });
 
         const data = await response.json().catch(() => ({}));
-
         if (response.ok) setIsFavorite(!!data.isFavorite);
         else setIsFavorite(false);
       } catch (error) {
@@ -243,7 +238,6 @@ const ReviewDetailPage = () => {
   const toggleFavorite = async () => {
     if (!authUser) {
       if (typeof openModal === "function") openModal("login");
-      else alert("Debes iniciar sesión para guardar favoritos.");
       return;
     }
 
@@ -255,76 +249,17 @@ const ReviewDetailPage = () => {
           ...getAuthHeaders(),
         },
         credentials: "include",
-        body: JSON.stringify({
-          review_id: Number(id),
-        }),
+        body: JSON.stringify({ review_id: Number(id) }),
       });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudo actualizar favorito");
-
       setIsFavorite(!!data.isFavorite);
     } catch (error) {
       console.error("❌ Error al actualizar favorito:", error);
       alert(error.message || "Error al actualizar favorito");
     }
   };
-
-  const handleDeleteFullReview = async () => {
-    if (
-      !window.confirm(
-        "¿Estás seguro de eliminar esta crónica? Se perderán todos los comentarios."
-      )
-    )
-      return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/reviews/full/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: {
-          ...getAuthHeaders(),
-        },
-      });
-
-  
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
-
-      alert("Crónica eliminada.");
-      navigate("/");
-    } catch (error) {
-      console.error(error);
-      alert(error.message || "Error eliminando reseña");
-    }
-  };
-      const handleAdminDeleteReview = async () => {
-  if (
-    !window.confirm(
-      " ADMIN: ¿Eliminar esta reseña permanentemente? Esta acción no se puede deshacer."
-    )
-  )
-    return;
-
-  try {
-    const response = await fetch(`${API_URL}/api/reviews/admin/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-      headers: {
-        ...getAuthHeaders(),
-      },
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
-
-    alert("Reseña eliminada por administrador.");
-    navigate("/");
-  } catch (error) {
-    console.error(error);
-    alert(error.message || "Error eliminando reseña");
-  }
-};
 
   const handleUpdateReview = async () => {
     try {
@@ -351,83 +286,69 @@ const ReviewDetailPage = () => {
 
   const getGenreDetails = (categoria) => {
     if (!categoria || categoria === "Analizando") {
-      return {
-        style: "bg-stone-100 text-stone-500 border-stone-200",
-        icon: <Sparkles className="w-4 h-4" />,
-      };
+      return { style: "bg-stone-100 text-stone-500 border-stone-200", icon: <Sparkles className="w-4 h-4" /> };
     }
     const cat = categoria.toLowerCase().trim();
-    if (cat.includes("terror"))
-      return {
-        style: "bg-red-100 text-red-800 border-red-200 shadow-sm",
-        icon: <Ghost className="w-4 h-4" />,
-      };
-    if (cat.includes("romance"))
-      return {
-        style: "bg-rose-100 text-rose-800 border-rose-200 shadow-sm",
-        icon: <Heart className="w-4 h-4" />,
-      };
-    if (cat.includes("suspenso"))
-      return {
-        style: "bg-slate-200 text-slate-800 border-slate-300 shadow-sm",
-        icon: <Search className="w-4 h-4" />,
-      };
-    if (cat.includes("fantasía") || cat.includes("fantasia"))
-      return {
-        style: "bg-purple-100 text-purple-800 border-purple-200 shadow-sm",
-        icon: <Sword className="w-4 h-4" />,
-      };
-    if (cat.includes("ciencia ficción"))
-      return {
-        style: "bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm",
-        icon: <Rocket className="w-4 h-4" />,
-      };
-    return {
-      style: "bg-stone-200 text-stone-700 border-stone-300",
-      icon: <Sparkles className="w-4 h-4" />,
-    };
+    if (cat.includes("terror")) return { style: "bg-red-100 text-red-800 border-red-200 shadow-sm", icon: <Ghost className="w-4 h-4" /> };
+    if (cat.includes("romance")) return { style: "bg-rose-100 text-rose-800 border-rose-200 shadow-sm", icon: <Heart className="w-4 h-4" /> };
+    if (cat.includes("suspenso")) return { style: "bg-slate-200 text-slate-800 border-slate-300 shadow-sm", icon: <Search className="w-4 h-4" /> };
+    if (cat.includes("fantasía") || cat.includes("fantasia")) return { style: "bg-purple-100 text-purple-800 border-purple-200 shadow-sm", icon: <Sword className="w-4 h-4" /> };
+    if (cat.includes("ciencia ficción")) return { style: "bg-cyan-100 text-cyan-800 border-cyan-200 shadow-sm", icon: <Rocket className="w-4 h-4" /> };
+    return { style: "bg-stone-200 text-stone-700 border-stone-300", icon: <Sparkles className="w-4 h-4" /> };
   };
 
-  if (!review) {
-    return (
-      <div className="p-20 text-center font-serif text-amber-900 animate-pulse">
-        Desenrollando el pergamino...
-      </div>
-    );
-  }
+  if (!review) return <div className="p-20 text-center font-serif text-amber-900 animate-pulse">Desenrollando el pergamino...</div>;
 
-  const imageUrl = review.image_url?.startsWith("http")
-    ? review.image_url
-    : review.image_url
-    ? `${API_URL}${review.image_url}`
-    : "";
-
+  const imageUrl = review.image_url?.startsWith("http") ? review.image_url : review.image_url ? `${API_URL}${review.image_url}` : "";
   const { style, icon } = getGenreDetails(review.categoria_ia);
+  const isNegativeReview = review.rating === -1;
+
+  const handleAdminDeleteReview = async () => {
+    if (!window.confirm("ADMIN: ¿Eliminar esta reseña permanentemente?")) return;
+    try {
+      const response = await fetch(`${API_URL}/api/reviews/admin/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { ...getAuthHeaders() },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
+      alert("Reseña eliminada por administrador.");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Error eliminando reseña");
+    }
+  };
+
+  const handleDeleteFullReview = async () => {
+    if (!window.confirm("¿Estás seguro de eliminar esta crónica? Se perderán todos los comentarios.")) return;
+    try {
+      const response = await fetch(`${API_URL}/api/reviews/full/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { ...getAuthHeaders() },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar");
+      alert("Crónica eliminada.");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Error eliminando reseña");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#e9e4d5] py-10 md:py-20 px-4">
       <div className="max-w-3xl mx-auto">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center text-amber-900 mb-6 md:mb-8 font-serif italic hover:underline group text-sm md:text-base"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />{" "}
-          Volver al catálogo
+        <button onClick={() => navigate(-1)} className="flex items-center text-amber-900 mb-6 md:mb-8 font-serif italic hover:underline group text-sm md:text-base">
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Volver al catálogo
         </button>
 
-        <article className="bg-[#f4f1ea] border border-stone-400 shadow-2xl overflow-hidden relative">
+        <article className={`bg-[#f4f1ea] border shadow-2xl overflow-hidden relative transition-colors duration-300 ${isNegativeReview ? "border-red-400 shadow-red-900/10" : "border-stone-400"}`}>
           <div className="w-full h-64 md:h-96 overflow-hidden border-b border-stone-400 bg-stone-200">
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={review.book_title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-stone-500 font-serif italic">
-                Sin imagen
-              </div>
-            )}
+            {imageUrl ? <img src={imageUrl} alt={review.book_title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-stone-500 font-serif italic">Sin imagen</div>}
           </div>
 
           <div className="p-6 md:p-12">
@@ -435,151 +356,90 @@ const ReviewDetailPage = () => {
               <>
                 <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
                   <div className="flex flex-col gap-3 md:gap-4 w-full">
-                    <h1 className="text-3xl md:text-5xl font-serif font-black text-stone-900 leading-tight break-words">
-                      {review.book_title}
-                    </h1>
-
-                    <button
-                      onClick={toggleFavorite}
-                      className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group"
-                      type="button"
-                    >
-                      <Star
-                        className={`w-4 h-4 transition-all ${
-                          isFavorite
-                            ? "text-amber-500 fill-amber-500 scale-110"
-                            : "text-stone-400 group-hover:text-amber-600"
-                        }`}
-                      />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-600">
-                        {isFavorite ? "En tu archivo favorito" : "Añadir a favoritos"}
-                      </span>
+                    <h1 className={`text-3xl md:text-5xl font-serif font-black leading-tight break-words transition-colors ${isNegativeReview ? "text-red-950" : "text-stone-900"}`}>{review.book_title}</h1>
+                    <button onClick={toggleFavorite} className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-full border border-stone-300 bg-white/50 hover:bg-white transition-all group">
+                      <Star className={`w-4 h-4 transition-all ${isFavorite ? "text-amber-500 fill-amber-500 scale-110" : "text-stone-400 group-hover:text-amber-600"}`} />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-600">{isFavorite ? "En tu archivo favorito" : "Añadir a favoritos"}</span>
                     </button>
                   </div>
 
-                  <div className="bg-amber-900 text-white px-4 py-2 flex items-center shadow-lg self-start md:self-auto shrink-0">
-                    <Star className="w-5 h-5 mr-2 text-amber-400 fill-amber-400" />
-                    <span className="text-xl font-bold">{review.rating}</span>
+                  <div className={`${isNegativeReview ? "bg-red-700 shadow-red-900/20" : "bg-amber-900 shadow-amber-900/20"} text-white px-4 py-2 flex items-center shadow-lg shrink-0 transition-colors`}>
+                    <Star className={`w-5 h-5 mr-2 ${isNegativeReview ? "text-white fill-white" : "text-amber-400 fill-amber-400"}`} />
+                    <span className="text-xl font-bold">{isNegativeReview ? "PÉSIMO" : review.rating}</span>
                   </div>
                 </div>
 
-                <div className="mb-6 flex">
-                  <span
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] md:text-xs font-black uppercase tracking-widest ${style}`}
-                  >
+                <div className="mb-6 flex flex-wrap gap-2">
+                  <span className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] md:text-xs font-black uppercase tracking-widest ${style}`}>
                     {icon} Clasificación IA: {review.categoria_ia || "Analizando"}
                   </span>
+                  {isNegativeReview && (
+                    <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-700 text-[10px] md:text-xs font-black uppercase tracking-widest animate-pulse">
+                      <AlertTriangle className="w-4 h-4" /> Crítica Negativa
+                    </span>
+                  )}
                 </div>
 
-                <p className="text-amber-900 font-sans font-bold uppercase tracking-[0.2em] text-xs md:text-sm mb-8">
-                  De {review.author || "Obra Anónima"}
-                </p>
+                <p className="text-amber-900 font-sans font-bold uppercase tracking-[0.2em] text-xs md:text-sm mb-8">De {review.author || "Obra Anónima"}</p>
 
                 <div className="prose prose-stone max-w-none mb-10 md:mb-12 relative">
                   {review.is_spoiler && !revealed ? (
                     <div className="relative">
-                      <p className="text-stone-800 text-lg md:text-xl leading-relaxed font-serif italic blur-md opacity-40 select-none">
-                        {review.review_text}
-                      </p>
+                      <p className="text-stone-800 text-lg md:text-xl leading-relaxed font-serif italic blur-md opacity-40 select-none">{review.review_text}</p>
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-200/30 p-6 text-center border-2 border-dashed border-amber-800/20">
-                        <p className="text-amber-900 font-serif font-bold text-base md:text-lg mb-4 text-center">
-                          ⚠️ Advertencia: Spoiler.
-                        </p>
-                        <button
-                          onClick={() => setRevealed(true)}
-                          className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest text-xs md:text-sm"
-                          type="button"
-                        >
-                          <Eye className="w-4 h-4 inline mr-2" /> Revelar
-                        </button>
+                        <p className="text-amber-900 font-serif font-bold text-base md:text-lg mb-4 text-center">⚠️ Advertencia: Spoiler.</p>
+                        <button onClick={() => setRevealed(true)} className="bg-amber-900 text-amber-50 px-6 py-3 font-sans font-bold uppercase tracking-widest text-xs md:text-sm"><Eye className="w-4 h-4 inline mr-2" /> Revelar</button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-stone-800 text-lg md:text-xl leading-relaxed font-serif italic first-letter:text-4xl md:first-letter:text-5xl first-letter:text-amber-900">
-                      {review.review_text}
+                    <p className={`text-lg md:text-xl leading-relaxed font-serif italic first-letter:text-4xl md:first-letter:text-5xl ${isNegativeReview ? "text-stone-700 first-letter:text-red-800" : "text-stone-800 first-letter:text-amber-900"}`}>
+                      "{review.review_text}"
                     </p>
                   )}
                 </div>
               </>
             ) : (
-              <div className="space-y-6">
-                <input
-                  className="text-xl md:text-3xl font-serif w-full p-3 border border-stone-300"
-                  value={editReviewFields.book_title}
-                  onChange={(e) =>
-                    setEditReviewFields({ ...editReviewFields, book_title: e.target.value })
-                  }
-                />
-                <input
-                  className="w-full p-3 border border-stone-300"
-                  value={editReviewFields.author}
-                  onChange={(e) =>
-                    setEditReviewFields({ ...editReviewFields, author: e.target.value })
-                  }
-                />
-                <textarea
-                  className="w-full p-4 border border-stone-300 font-serif"
-                  rows="8"
-                  value={editReviewFields.review_text}
-                  onChange={(e) =>
-                    setEditReviewFields({ ...editReviewFields, review_text: e.target.value })
-                  }
-                />
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleUpdateReview}
-                    className="bg-amber-900 text-white px-6 py-2 text-xs font-bold uppercase"
-                    type="button"
-                  >
-                    GUARDAR CAMBIOS
-                  </button>
-                  <button
-                    onClick={() => setIsEditingReview(false)}
-                    className="text-stone-500 text-xs font-bold uppercase"
-                    type="button"
-                  >
-                    CANCELAR
-                  </button>
+              <div className="space-y-6 animate-fadeIn">
+                <input className="text-xl md:text-3xl font-serif w-full p-3 border border-stone-300 bg-white" value={editReviewFields.book_title} onChange={(e) => setEditReviewFields({ ...editReviewFields, book_title: e.target.value })} />
+                <input className="w-full p-3 border border-stone-300 bg-white" value={editReviewFields.author} onChange={(e) => setEditReviewFields({ ...editReviewFields, author: e.target.value })} />
+                <textarea className="w-full p-4 border border-stone-300 font-serif bg-white" rows="8" value={editReviewFields.review_text} onChange={(e) => setEditReviewFields({ ...editReviewFields, review_text: e.target.value })} />
+                
+                {/* SELECTOR DE RATING EN EDICIÓN INTEGRADO */}
+                <div className="p-4 bg-stone-100 border border-stone-200 shadow-inner">
+                  <label className="block text-stone-900 font-serif font-bold text-sm mb-3 italic">Modificar Puntuación:</label>
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <button type="button" onClick={() => setEditReviewFields({ ...editReviewFields, rating: -1 })} className="flex flex-col items-center group transition-transform active:scale-90">
+                      <Star fill={editReviewFields.rating === -1 ? "#b91c1c" : "none"} stroke={editReviewFields.rating === -1 ? "#b91c1c" : "#78716c"} className={`w-10 h-10 transition-colors ${editReviewFields.rating === -1 ? "drop-shadow-[0_0_8px_rgba(185,28,28,0.3)]" : "group-hover:stroke-red-400"}`} />
+                      <span className={`text-[8px] font-bold mt-1 uppercase tracking-tighter ${editReviewFields.rating === -1 ? "text-red-700" : "text-stone-400"}`}>Pésimo</span>
+                    </button>
+                    <div className="hidden sm:block h-10 w-[2px] bg-stone-300"></div>
+                    <div className="flex flex-col items-center sm:items-start">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <Star key={num} fill={editReviewFields.rating >= num ? "#78350f" : "none"} stroke={editReviewFields.rating >= num ? "#78350f" : "#78716c"} className={`w-8 h-8 cursor-pointer transition-all hover:scale-110 active:scale-95 ${editReviewFields.rating === -1 ? "opacity-20 grayscale" : "opacity-100"}`} onClick={() => setEditReviewFields({ ...editReviewFields, rating: num })} />
+                        ))}
+                      </div>
+                      <span className="text-[8px] font-bold mt-1 uppercase text-stone-400 tracking-tighter">Estándar</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button onClick={handleUpdateReview} className="bg-amber-900 text-white px-8 py-3 text-xs font-bold uppercase hover:bg-black transition-colors shadow-md">GUARDAR CAMBIOS</button>
+                  <button onClick={() => setIsEditingReview(false)} className="text-stone-500 text-xs font-bold uppercase hover:text-stone-800 transition-colors">CANCELAR</button>
                 </div>
               </div>
             )}
 
-            <div className="mt-8 md:mt-12 pt-8 border-t border-stone-300 flex flex-wrap gap-y-4 gap-x-6 justify-between items-center text-stone-500 text-[9px] md:text-[10px] uppercase tracking-[0.2em]">
-              <div className="flex items-center">
-                <User className="w-4 h-4 mr-2 text-amber-900" />
-                Escrito por{" "}
-                <span className="text-stone-800 font-bold ml-1">{review.user_name}</span>
-              </div>
-
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2 text-amber-900" />{" "}
-                {review.created_at ? new Date(review.created_at).toLocaleDateString() : ""}
-              </div>
-
-              <div className="flex items-center">
-                <Eye className="w-4 h-4 mr-2 text-amber-900" />
-                {(review.views_count ?? 0).toLocaleString("es-MX")} vistas
-              </div>
+            <div className="mt-8 pt-8 border-t border-stone-300 flex flex-wrap gap-4 justify-between items-center text-stone-500 text-[9px] md:text-[10px] uppercase tracking-[0.2em]">
+              <div className="flex items-center"><User className="w-4 h-4 mr-2 text-amber-900" />Escrito por <span className="text-stone-800 font-bold ml-1">{review.user_name}</span></div>
+              <div className="flex items-center"><Calendar className="w-4 h-4 mr-2 text-amber-900" /> {review.created_at ? new Date(review.created_at).toLocaleDateString() : ""}</div>
+              <div className="flex items-center"><Eye className="w-4 h-4 mr-2 text-amber-900" /> {(review.views_count ?? 0).toLocaleString("es-MX")} vistas</div>
 
               {!isEditingReview && (authUser?.id === review.usuarios_id || isAdmin) && (
-
                 <div className="flex gap-4 w-full md:w-auto md:ml-auto pt-4 md:pt-0">
-                  <button
-                    onClick={() => setIsEditingReview(true)}
-                    className="flex items-center gap-1 text-amber-900 hover:underline font-bold"
-                    type="button"
-                  >
-                    <Edit2 className="w-3 h-3" /> Editar Crónica
-                  </button>
-                 <button
-  onClick={isAdmin ? handleAdminDeleteReview : handleDeleteFullReview}
-  className="flex items-center gap-1 text-red-800 hover:underline font-bold"
-  type="button"
->
-  <Trash2 className="w-3 h-3" />
-  {isAdmin ? "Eliminar (Admin)" : "Eliminar"}
-</button>
-
+                  <button onClick={() => setIsEditingReview(true)} className="flex items-center gap-1 text-amber-900 hover:underline font-bold"><Edit2 className="w-3 h-3" /> Editar Crónica</button>
+                  <button onClick={isAdmin ? handleAdminDeleteReview : handleDeleteFullReview} className="flex items-center gap-1 text-red-800 hover:underline font-bold"><Trash2 className="w-3 h-3" /> {isAdmin ? "Eliminar (Admin)" : "Eliminar"}</button>
                 </div>
               )}
             </div>
@@ -588,6 +448,14 @@ const ReviewDetailPage = () => {
 
         <CommentsSection reviewId={id} authUser={authUser} openModal={openModal} />
       </div>
+      
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+      `}</style>
     </div>
   );
 };
