@@ -141,13 +141,15 @@ if (!user.activo) {
       { expiresIn: "2h" }
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      path: "/",
-      maxAge: 2 * 60 * 60 * 1000,
-    });
+    const isProduction = process.env.NODE_ENV === "production";
+
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: isProduction, 
+  sameSite: isProduction ? "None" : "Lax", 
+  path: "/",
+  maxAge: 24 * 60 * 60 * 1000,
+});
 
     return res.json({
       message: "Login exitoso.",
