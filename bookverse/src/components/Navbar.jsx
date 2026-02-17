@@ -67,10 +67,12 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
 
       socketRef.current = io(SOCKET_URL, {
         withCredentials: true,
-        transports: ["websocket"],
+        transports: ["polling" ,"websocket"],
       });
 
-      socketRef.current.emit("join_user_room", userId);
+     socketRef.current.on("connect", () => {
+  socketRef.current.emit("join_user_room", userId);
+});
 
       socketRef.current.on("nueva_notificacion", (data) => {
         setNotifications((prev) => [data, ...prev]);
