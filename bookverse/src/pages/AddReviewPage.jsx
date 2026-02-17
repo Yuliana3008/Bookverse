@@ -26,7 +26,7 @@ const AddReviewPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    /*if (checkSession) await checkSession();*/
+    if (checkSession) await checkSession();
 
     if (!isAuthenticated) {
       setAuthMessage({
