@@ -26,16 +26,17 @@ const AddReviewPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (checkSession) await checkSession();
+ let sessionUser = null;
+if (checkSession) sessionUser = await checkSession();
 
-    if (!isAuthenticated) {
-      setAuthMessage({
-        type: "error",
-        text: "Debes iniciar sesión para publicar una reseña.",
-      });
-      openModal("login");
-      return;
-    }
+if (!sessionUser) {
+  setAuthMessage({
+    type: "error",
+    text: "Debes iniciar sesión para publicar una reseña.",
+  });
+  openModal("login");
+  return;
+}
 
     // Validación: Ahora permitimos rating -1
     if (
@@ -65,11 +66,15 @@ const AddReviewPage = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/reviews`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const token = localStorage.getItem("token");
+const response = await fetch(`${API_URL}/api/reviews`, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  },
+  body: formData,
+});
 
       const result = await response.json();
 
