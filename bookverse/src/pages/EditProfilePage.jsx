@@ -29,15 +29,17 @@ const EditProfilePage = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/update-profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include', 
-        body: JSON.stringify(formData),
-      });
+      const token = localStorage.getItem("token");
+const response = await fetch(`${API_URL}/api/auth/update-profile`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  },
+  credentials: 'include',
+  body: JSON.stringify(formData),
+});
 
       if (response.status === 401) {
         setAuthMessage({ type: 'error', text: 'Tu sesión expiró. Inicia sesión de nuevo.' });

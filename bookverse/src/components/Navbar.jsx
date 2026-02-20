@@ -38,28 +38,50 @@ const Navbar = ({ isAuthenticated,  isAdmin,  userName, userId, openModal, handl
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [hasUnread, setHasUnread] = useState(false);
+  const [notifications, setNotifications] = useState(() => {
+  try {
+    const cached = localStorage.getItem("notifications");
+    return cached ? JSON.parse(cached) : [];
+  } catch { return []; }
+});
+const [hasUnread, setHasUnread] = useState(() => {
+  try {
+    const cached = localStorage.getItem("notifications");
+    const parsed = cached ? JSON.parse(cached) : [];
+    return parsed.some((n) => !n.leido);
+  } catch { return false; }
+});
 
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const socketRef = useRef(null);
 
-  const api = axios.create({
-    baseURL: SOCKET_URL,
-    withCredentials: true,
-  });
+  const token = localStorage.getItem("token");
+const api = axios.create({
+  baseURL: SOCKET_URL,
+  withCredentials: true,
+  headers: {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  },
+});
 
   const fetchNotifications = async () => {
-    try {
-      const res = await api.get(`/api/reviews/notifications/me`);
-      setNotifications(res.data);
-      setHasUnread(res.data.some((n) => !n.leido));
-    } catch (error) {
-      console.error("Error al cargar notificaciones", error);
+  try {
+    const res = await api.get(`/api/reviews/notifications/me`);
+    setNotifications(res.data);
+    setHasUnread(res.data.some((n) => !n.leido));
+    localStorage.setItem("notifications", JSON.stringify(res.data));
+  } catch (error) {
+    console.error("Error al cargar notificaciones", error);
+    const cached = localStorage.getItem("notifications");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      setNotifications(parsed);
+      setHasUnread(parsed.some((n) => !n.leido));
     }
-  };
+  }
+};
 
   useEffect(() => {
     if (isAuthenticated && userId) {
